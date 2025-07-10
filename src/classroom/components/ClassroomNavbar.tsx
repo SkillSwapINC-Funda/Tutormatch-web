@@ -5,7 +5,10 @@ import { Bell, User } from "lucide-react";
 
     const ClassroomNavbar: React.FC<ClassroomNavbarProps> = () => (
         <header className="bg-dark-light px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div
+                className="flex items-center space-x-3 cursor-pointer"
+                onClick={() => window.location.assign("/classroom")}
+            >
                 <h1 className="text-xl font-bold text-light">TutorMatch</h1>
                 <span className="bg-primary text-light text-sm px-2 py-1 rounded">Classroom</span>
             </div>

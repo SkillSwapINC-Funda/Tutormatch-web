@@ -34,10 +34,6 @@ const ClassroomDetails: React.FC = () => {
     { id: 5, name: 'Video Explicativo - Recorridos.mp4', size: '45.2 MB', date: '4 de junio de 2025', type: 'mp4', icon: '▶️' }
   ];
 
-  const chatMessages = [
-    { id: 1, sender: 'Ana Martínez', isCurrentUser: false, message: '¡Genial! Me gusta cómo explicas con ejemplos de código. ¿Podrías mostrarme también la implementación en TypeScript?', time: '10:54 a. m.', type: 'message' }
-  ];
-
   const syllabus = [
     'Introducción a la Complejidad Algorítmica',
     'Análisis de Algoritmos Recursivos',
@@ -48,22 +44,16 @@ const ClassroomDetails: React.FC = () => {
     'Programación Dinámica',
     'Algoritmos de Grafos'
   ];
-
-  const participants = [
-    { name: 'Ana Martínez', role: 'Tutor', initials: 'A', status: 'online' },
-    { name: 'Estudiante Actual', role: 'Estudiante', initials: 'E', status: 'online' }
-  ];
-
   return (
-    <div className="min-h-screen bg-dark text-light flex flex-col">
+    <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
       <ClassroomNavbar />
-      <div className="px-6 pt-6">
+      <div className="px-6 pt-6 flex-shrink-0">
         <div className="mb-4 text-lg font-bold">
           Classroom details de la tutoría: <b>{tutoringId}</b>
         </div>
       </div>
       {/* Navigation Tabs */}
-      <nav className="bg-dark px-6 py-2 border-b border-dark-border">
+      <nav className="bg-dark px-6 py-2 border-b border-dark-border flex-shrink-0">
         <div className="flex space-x-8">
           <button
             onClick={() => setActiveTab('chat')}
@@ -101,9 +91,9 @@ const ClassroomDetails: React.FC = () => {
         </div>
       </nav>
       {/* Main Content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 overflow-hidden">
         {activeTab === 'chat' && (
-          <ChatTab participants={participants} chatMessages={chatMessages} />
+          <ChatTab classroomId={String(tutoringId)} />
         )}
         {activeTab === 'materials' && (
           <MaterialsTab materials={materials} viewMode={viewMode} setViewMode={setViewMode} />
@@ -112,7 +102,9 @@ const ClassroomDetails: React.FC = () => {
           <InformationTab courseInfo={courseInfo} syllabus={syllabus} />
         )}
       </main>
-      <ClassroomFooter />
+      <div className="flex-shrink-0">
+        <ClassroomFooter />
+      </div>
     </div>
   );
 };
