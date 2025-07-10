@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { TutoringService } from '../../tutoring/services/TutoringService';
+import { UserService } from '../../user/services/UserService';
 import { TutoringSession } from '../../tutoring/types/Tutoring';
-import { Search, Filter, MessageCircle, FileText } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
+import ClassroomCourseCard from '../components/classroom-dashboard/ClassroomCourseCard';
 import ClassroomNavbar from '../components/ClassroomNavbar';
 import ClassroomFooter from '../components/ClassroomFooter';
 
@@ -59,12 +61,25 @@ const ClassroomPage = () => {
     }
   };
 
-  function calcularInfoCurso(course: TutoringSession) {
+
+  async function calcularInfoCurso(course: TutoringSession): Promise<{
+    tutorName: string;
+    status: string;
+    nextSession: string;
+    chatNotifications: number;
+    materialsNotifications: number;
+  }> {
     let tutorName = 'Desconocido';
     if ((course as any).tutor && (course as any).tutor.firstName) {
       tutorName = `${(course as any).tutor.firstName} ${(course as any).tutor.lastName || ''}`.trim();
     } else if (course.tutorId) {
-      tutorName = course.tutorId;
+      // Buscar nombre real del tutor desde el perfil
+      try {
+        const user = await UserService.getUserById(course.tutorId);
+        tutorName = `${user.firstName} ${user.lastName}`.trim();
+      } catch {
+        tutorName = course.tutorId;
+      }
     }
 
     let status = 'Completado';
@@ -96,11 +111,19 @@ const ClassroomPage = () => {
   }
 
   useEffect(() => {
-    const map: Record<string, any> = {};
-    courses.forEach((course) => {
-      map[course.id] = calcularInfoCurso(course);
-    });
-    setCourseInfoMap(map);
+    let isMounted = true;
+    async function calcularTodos() {
+      const map: Record<string, any> = {};
+      await Promise.all(
+        courses.map(async (course) => {
+          map[course.id] = await calcularInfoCurso(course);
+        })
+      );
+      if (isMounted) setCourseInfoMap(map);
+    }
+    if (courses.length > 0) calcularTodos();
+    else setCourseInfoMap({});
+    return () => { isMounted = false; };
   }, [courses]);
 
   return (
@@ -110,7 +133,7 @@ const ClassroomPage = () => {
 
       {/* Main Content */}
       <main className="flex-1 px-6 py-8">
-        <h2 className="text-2xl font-bold mb-8">Mis Cursos en Classroom</h2>
+        <h2 className="text-2xl font-bold mb-8">Tutorías disponibles en Classroom</h2>
 
         {/* Search and Filter */}
         <div className="flex items-center space-x-4 mb-8">
@@ -152,69 +175,19 @@ const ClassroomPage = () => {
                   materialsNotifications: 0,
                 };
                 return (
-                  <div key={course.id} className="bg-dark-card rounded-lg overflow-hidden hover:bg-dark-light transition-colors">
-                    {/* Course Content Area */}
-                    <div className="bg-light-gray h-40 flex items-center justify-center">
-                      <div className="w-16 h-16 bg-dark-border rounded-lg flex items-center justify-center">
-                        <FileText className="w-8 h-8 text-light-gray" />
-                      </div>
-                    </div>
-
-                    {/* Course Info */}
-                    <div className="px-4 py-4">
-                      {/* Status Badge */}
-                      <div className="mb-3">
-                        <span className={`inline-block px-3 py-1 rounded text-sm font-medium text-light ${getStatusColor(status)}`}>
-                          {getStatusText(status)}
-                        </span>
-                      </div>
-
-                      <h3 className="text-lg font-semibold mb-2 text-light leading-tight">
-                        {course.title}
-                      </h3>
-                      <p className="text-light-gray text-sm mb-1">
-                        Tutor: {info.tutorName}
-                      </p>
-                      <p className="text-light-gray text-sm mb-4">
-                        {info.status === 'Completado' ? (
-                          <>🔴 Completado</>
-                        ) : (
-                          <>🔴 Próxima sesión: {info.nextSession}</>
-                        )}
-                      </p>
-
-                      {/* Enter Classroom Button */}
-                      <button className="w-full bg-primary hover:bg-primary-hover text-light font-medium py-3 px-4 rounded-lg transition-colors mb-4">
-                        Entrar al Classroom
-                      </button>
-
-                      {/* Chat and Materials */}
-                      <div className="flex space-x-4">
-                        <div className="flex items-center space-x-2 text-light-gray">
-                          <div className="relative">
-                            <MessageCircle className="w-5 h-5" />
-                            {info.chatNotifications > 0 && (
-                              <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                {info.chatNotifications}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm">Chat</span>
-                        </div>
-                        <div className="flex items-center space-x-2 text-light-gray">
-                          <div className="relative">
-                            <FileText className="w-5 h-5" />
-                            {info.materialsNotifications > 0 && (
-                              <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                                {info.materialsNotifications}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm">Materiales</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <ClassroomCourseCard
+                    key={course.id}
+                    id={course.id}
+                    title={course.title}
+                    tutorName={info.tutorName}
+                    status={info.status}
+                    nextSession={info.nextSession}
+                    chatNotifications={info.chatNotifications}
+                    materialsNotifications={info.materialsNotifications}
+                    imageUrl={course.imageUrl}
+                    getStatusColor={getStatusColor}
+                    getStatusText={getStatusText}
+                  />
                 );
               })
             )}

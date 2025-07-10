@@ -19,6 +19,7 @@ import MembershipPlansPage from './public/pages/membership/pages/MembershipPlans
 import MembershipWaitingPage from './public/pages/membership/pages/MembershipWaitingPage';
 import AdminDashboardPage from './admin/pages/AdminDashboardPage';
 import ClassroomPage from './classroom/pages/ClassroomPage';
+import ClassroomDetails from './classroom/pages/ClassroomDetails';
 
 const App = () => {
   return (
@@ -42,6 +43,7 @@ const App = () => {
           <Route path="/membership/waiting" element={<MembershipWaitingPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/classroom" element={<ClassroomPage />} />
+          <Route path="/classroom/details/:tutoringId" element={<ClassroomDetails />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
