@@ -1,0 +1,175 @@
+{
+  "tutoringSessions": [
+    {
+      "id": 1,
+      "tutorId": 3,
+      "studentId": 0,
+      "courseId": 1,
+      "title": "Introducción a los Algoritmos",
+      "description": "12",
+      "price": 12,
+      "whatTheyWillLearn": [
+        "12"
+      ],
+      "imageUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_ch9x0MvF72CI2CC1PA8FRSUp9Hy1Gl6L2Q&s",
+      "materials": [],
+      "feedback": [],
+      "availableTimes": [
+        {
+          "dayOfWeek": 0,
+          "availableHours": [
+            {
+              "start": "8:00",
+              "end": "9:00"
+            }
+          ]
+        }
+      ],
+      "createdAt": "2025-04-17T03:01:53.285Z",
+      "updatedAt": "2025-04-17T03:01:53.285Z"
+    }
+  ],
+  "reviews": [],
+  "users": [
+    {
+      "id": 3,
+      "firstName": "Juan",
+      "lastName": "Pérez",
+      "email": "juan@example.com",
+      "role": "tutor",
+      "status": "active",
+      "semesterNumber": 5,
+      "academicYear": "2024-02",
+      "phone": "+51 987654321",
+      "bio": "Apasionado por la enseñanza y el aprendizaje continuo. Me encanta ayudar a otros a alcanzar sus metas académicas.",
+      "createdAt": "2025-04-17T03:01:53.285Z",
+      "updatedAt": "2025-04-17T03:01:53.285Z"
+    }
+  ],
+  "semesters": [
+    {
+      "id": 1,
+      "name": "First",
+      "courses": [
+        {
+          "id": 1,
+          "name": "Introducción a los Algoritmos",
+          "semester": 1
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Second",
+      "courses": [
+        {
+          "id": 2,
+          "name": "Algoritmos",
+          "semester": 2
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Third",
+      "courses": [
+        {
+          "id": 3,
+          "name": "Algoritmos y Estructuras de Datos",
+          "semester": 3
+        },
+        {
+          "id": 4,
+          "name": "Diseño y Patrones de Software",
+          "semester": 3
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Fourth",
+      "courses": [
+        {
+          "id": 5,
+          "name": "Diseño de Base de Datos",
+          "semester": 4
+        },
+        {
+          "id": 6,
+          "name": "IHC y Tecnologías Móviles",
+          "semester": 4
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Fifth",
+      "courses": [
+        {
+          "id": 7,
+          "name": "Aplicaciones Web",
+          "semester": 5
+        },
+        {
+          "id": 8,
+          "name": "Desarrollo de Aplicaciones Open Source",
+          "semester": 5
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Sixth",
+      "courses": [
+        {
+          "id": 9,
+          "name": "Aplicaciones para Dispositivos Móviles",
+          "semester": 6
+        },
+        {
+          "id": 10,
+          "name": "Complejidad Algorítmica",
+          "semester": 6
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Seventh",
+      "courses": [
+        {
+          "id": 11,
+          "name": "Diseño de Experimentos de Ingeniería de Software",
+          "semester": 7
+        },
+        {
+          "id": 12,
+          "name": "Fundamentos de Arquitectura de Software",
+          "semester": 7
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Eighth",
+      "courses": [
+        {
+          "id": 13,
+          "name": "Arquitecturas de Software Emergentes",
+          "semester": 8
+        },
+        {
+          "id": 14,
+          "name": "Gerencia de Proyectos en Computación",
+          "semester": 8
+        }
+      ]
+    }
+  ],
+  "_routes": {
+    "/tutoring": "/tutoringSessions",
+    "/reviews": "/reviews",
+    "/users": "/users",
+    "/semesters": "/semesters"
+  }
+}

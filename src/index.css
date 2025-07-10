@@ -1,0 +1,189 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #c92020;
+  --primary-hover: #a51b1b;
+  --secondary: #b41c1c;
+  --dark: #1f1f1f;
+  --dark-light: #2a2a2a;
+  --dark-card: #2f2f2f;
+  --dark-border: #3f3f3f;
+  --light: #ffffff;
+  --light-gray: #a0a0a0;
+  
+  --text-color: var(--light);
+  --surface-a: var(--dark-card);
+  --surface-b: var(--dark);
+  --surface-c: var(--dark-border);
+  --surface-d: var(--dark-light);
+  --input-bg: var(--dark-light);
+  --input-border: var(--dark-border);
+  
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: var(--light);
+  background-color: var(--dark);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: var(--primary);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--primary-hover);
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--dark);
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  color: var(--light);
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--dark-light);
+  color: var(--light);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+button:hover {
+  border-color: var(--primary);
+}
+button:focus,
+button:focus-visible {
+  outline: 2px solid var(--primary);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: var(--light);
+    background-color: var(--dark);
+  }
+  a:hover {
+    color: var(--primary-hover);
+  }
+  button {
+    background-color: var(--dark-light);
+  }
+}
+
+.auth-page {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+  margin: 0;
+}
+
+.auth-page #root {
+  padding: 0;
+  max-width: none;
+  width: 100%;
+}
+
+.p-inputnumber {
+  width: 100% !important;
+}
+
+.p-inputnumber .p-inputtext {
+  background-color: #1f1f1f !important;
+  color: white !important;
+  border: 1px solid #3f3f3f !important;
+  width: 100% !important;
+  padding: 0.75rem !important;
+  border-radius: 0.25rem !important;
+}
+
+.p-inputnumber .p-inputtext:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(63, 63, 63, 0.5) !important;
+  border-color: #3f3f3f !important;
+  background-color: #1f1f1f !important;
+}
+
+.p-dialog-header {
+  background-color: #1f1f1f !important;
+  color: white !important;
+  padding: 1rem !important;
+  border-top-left-radius: 0.25rem !important;
+  border-top-right-radius: 0.25rem !important;
+  border-bottom: 1px solid #3f3f3f !important;
+}
+
+.p-dialog-title {
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+}
+
+.p-dialog-header-icon {
+  color: white !important;
+  margin-left: 0.5rem !important;
+  border-radius: 0.25rem !important;
+}
+
+.p-dialog-header-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.p-dialog-header-icon:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(63, 63, 63, 0.5) !important;
+}
+
+/* Hacer el botón de cerrar del Toast transparente */
+.p-toast-icon-close {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  pointer-events: none !important;
+}
+
+/* Añadir estos estilos para el navbar fijo */
+.fixed-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition: transform 0.3s ease-in-out;
+}
+
+/* Clase para esconder el navbar cuando se scrollea hacia abajo (opcional) */
+.navbar-hidden {
+  transform: translateY(-100%);
+}
+
+/* Asegurar que el contenido no se esconda detrás del navbar */
+.content-with-fixed-navbar {
+  padding-top: 64px; /* Ajustar según la altura exacta del navbar */
+}
+
+/* Hacer que el scroll sea suave */
+html {
+  scroll-behavior: smooth;
+}
