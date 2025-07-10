@@ -18,6 +18,7 @@ import SupportPage from './support/pages/SupportPage';
 import MembershipPlansPage from './public/pages/membership/pages/MembershipPlansPage';
 import MembershipWaitingPage from './public/pages/membership/pages/MembershipWaitingPage';
 import AdminDashboardPage from './admin/pages/AdminDashboardPage';
+import ClassroomPage from './classroom/pages/ClassroomPage';
 
 const App = () => {
   return (
@@ -40,6 +41,7 @@ const App = () => {
           <Route path="/membership/plans" element={<MembershipPlansPage />} />
           <Route path="/membership/waiting" element={<MembershipWaitingPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/classroom" element={<ClassroomPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>

@@ -222,6 +222,13 @@ const Navbar = () => {
               </Link>
             </div>
 
+            <button
+              className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+              onClick={() => navigate('/classroom')}
+            >
+              Entrar a Classroom
+            </button>
+
             {/* Botones a la derecha - visible en desktop */}
             <div className="hidden md:flex items-center space-x-4">
               {/* Solo mostrar botón de "Añadir Tutoría" si el usuario es un tutor */}
