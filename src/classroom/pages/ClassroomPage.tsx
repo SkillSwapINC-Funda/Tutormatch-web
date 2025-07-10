@@ -1,40 +1,41 @@
-import { useState } from 'react';
-import { Search, Filter, MessageCircle, FileText, Bell, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TutoringService } from '../../tutoring/services/TutoringService';
+import { TutoringSession } from '../../tutoring/types/Tutoring';
+import { Search, Filter, MessageCircle, FileText } from 'lucide-react';
+import ClassroomNavbar from '../components/ClassroomNavbar';
+import ClassroomFooter from '../components/ClassroomFooter';
 
 const ClassroomPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllTutorials, setShowAllTutorials] = useState(false);
 
-  // Datos de ejemplo - estos vendrán de tu API
-  const courses = [
-    {
-      id: 1,
-      title: 'Algoritmos y Estructura de datos: Árboles Binarios',
-      tutor: 'Ana Martínez',
-      status: 'En curso',
-      nextSession: '15 de abril de 2024, 15:00',
-      chatNotifications: 1,
-      materialsNotifications: 0
-    },
-    {
-      id: 2,
-      title: 'Diseño de Base de Datos: MongoDB',
-      tutor: 'Roberto Sánchez',
-      status: 'Completado',
-      completedDate: '20 de marzo de 2024, 09:00',
-      chatNotifications: 0,
-      materialsNotifications: 0
-    },
-    {
-      id: 3,
-      title: 'Complejidad Algorítmica: Asesorías',
-      tutor: 'Carlos Domínguez',
-      status: 'En curso',
-      nextSession: '16 de abril de 2024, 17:30',
-      chatNotifications: 0,
-      materialsNotifications: 1
-    }
-  ];
+  // Estado para los cursos reales
+  const [courses, setCourses] = useState<TutoringSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [courseInfoMap, setCourseInfoMap] = useState<Record<string, {
+    tutorName: string;
+    status: string;
+    nextSession: string;
+    chatNotifications: number;
+    materialsNotifications: number;
+  }>>({});
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await TutoringService.getAllTutoringSessions();
+        setCourses(data);
+      } catch (err: any) {
+        setError('Error al cargar las tutorías.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -58,24 +59,54 @@ const ClassroomPage = () => {
     }
   };
 
+  function calcularInfoCurso(course: TutoringSession) {
+    let tutorName = 'Desconocido';
+    if ((course as any).tutor && (course as any).tutor.firstName) {
+      tutorName = `${(course as any).tutor.firstName} ${(course as any).tutor.lastName || ''}`.trim();
+    } else if (course.tutorId) {
+      tutorName = course.tutorId;
+    }
+
+    let status = 'Completado';
+    let nextSession = '';
+    const now = new Date();
+    if (course.availableTimes && course.availableTimes.length > 0) {
+      const future = course.availableTimes
+        .map((t) => {
+          const today = new Date();
+          const dayDiff = ((t.dayOfWeek ?? t.day_of_week ?? 0) + 7 - today.getDay()) % 7;
+          const sessionDate = new Date(today);
+          sessionDate.setDate(today.getDate() + dayDiff);
+          const [h, m] = (t.startTime ?? t.start_time ?? '00:00').split(':');
+          sessionDate.setHours(Number(h), Number(m), 0, 0);
+          return sessionDate > now ? sessionDate : null;
+        })
+        .filter(Boolean) as Date[];
+      if (future.length > 0) {
+        status = 'En curso';
+        const next = future.sort((a, b) => a.getTime() - b.getTime())[0];
+        nextSession = next.toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
+      }
+    }
+
+    const chatNotifications = 0;
+    const materialsNotifications = 0;
+
+    return { tutorName, status, nextSession, chatNotifications, materialsNotifications };
+  }
+
+  useEffect(() => {
+    const map: Record<string, any> = {};
+    courses.forEach((course) => {
+      map[course.id] = calcularInfoCurso(course);
+    });
+    setCourseInfoMap(map);
+  }, [courses]);
+
   return (
     <div className="min-h-screen bg-dark text-light flex flex-col">
       {/* Header */}
-      <header className="bg-dark-light px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <h1 className="text-xl font-bold text-light">TutorMatch</h1>
-          <span className="bg-primary text-light text-sm px-2 py-1 rounded">Classroom</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Bell className="w-6 h-6 text-light-gray" />
-            <span className="absolute -top-1 -right-1 bg-primary text-xs w-5 h-5 rounded-full flex items-center justify-center">1</span>
-          </div>
-          <div className="w-8 h-8 bg-dark-border rounded-full flex items-center justify-center">
-            <User className="w-5 h-5 text-light-gray" />
-          </div>
-        </div>
-      </header>
+      <ClassroomNavbar />
 
       {/* Main Content */}
       <main className="flex-1 px-6 py-8">
@@ -103,83 +134,96 @@ const ClassroomPage = () => {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {courses.map((course) => (
-            <div key={course.id} className="bg-dark-card rounded-lg overflow-hidden hover:bg-dark-light transition-colors">
-              {/* Course Content Area */}
-              <div className="bg-light-gray h-40 flex items-center justify-center">
-                <div className="w-16 h-16 bg-dark-border rounded-lg flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-light-gray" />
-                </div>
-              </div>
-
-              {/* Course Info */}
-              <div className="px-4 py-4">
-                {/* Status Badge */}
-                <div className="mb-3">
-                  <span className={`inline-block px-3 py-1 rounded text-sm font-medium text-light ${getStatusColor(course.status)}`}>
-                    {getStatusText(course.status)}
-                  </span>
-                </div>
-
-                <h3 className="text-lg font-semibold mb-2 text-light leading-tight">
-                  {course.title}
-                </h3>
-                <p className="text-light-gray text-sm mb-1">
-                  Tutor: {course.tutor}
-                </p>
-                <p className="text-light-gray text-sm mb-4">
-                  {course.status === 'Completado' ? (
-                    <>🔴 Completado el {course.completedDate}</>
-                  ) : (
-                    <>🔴 Próxima sesión: {course.nextSession}</>
-                  )}
-                </p>
-
-                {/* Enter Classroom Button */}
-                <button className="w-full bg-primary hover:bg-primary-hover text-light font-medium py-3 px-4 rounded-lg transition-colors mb-4">
-                  Entrar al Classroom
-                </button>
-
-                {/* Chat and Materials */}
-                <div className="flex space-x-4">
-                  <div className="flex items-center space-x-2 text-light-gray">
-                    <div className="relative">
-                      <MessageCircle className="w-5 h-5" />
-                      {course.chatNotifications > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                          {course.chatNotifications}
-                        </span>
-                      )}
+        {loading ? (
+          <div className="text-center text-light-gray py-12">Cargando tutorías...</div>
+        ) : error ? (
+          <div className="text-center text-red-400 py-12">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {courses.length === 0 ? (
+              <div className="col-span-full text-center text-light-gray py-12">No hay tutorías disponibles.</div>
+            ) : (
+              courses.map((course) => {
+                const info = courseInfoMap[course.id] || {
+                  tutorName: 'Desconocido',
+                  status: 'Completado',
+                  nextSession: '',
+                  chatNotifications: 0,
+                  materialsNotifications: 0,
+                };
+                return (
+                  <div key={course.id} className="bg-dark-card rounded-lg overflow-hidden hover:bg-dark-light transition-colors">
+                    {/* Course Content Area */}
+                    <div className="bg-light-gray h-40 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-dark-border rounded-lg flex items-center justify-center">
+                        <FileText className="w-8 h-8 text-light-gray" />
+                      </div>
                     </div>
-                    <span className="text-sm">Chat</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-light-gray">
-                    <div className="relative">
-                      <FileText className="w-5 h-5" />
-                      {course.materialsNotifications > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
-                          {course.materialsNotifications}
+
+                    {/* Course Info */}
+                    <div className="px-4 py-4">
+                      {/* Status Badge */}
+                      <div className="mb-3">
+                        <span className={`inline-block px-3 py-1 rounded text-sm font-medium text-light ${getStatusColor(status)}`}>
+                          {getStatusText(status)}
                         </span>
-                      )}
+                      </div>
+
+                      <h3 className="text-lg font-semibold mb-2 text-light leading-tight">
+                        {course.title}
+                      </h3>
+                      <p className="text-light-gray text-sm mb-1">
+                        Tutor: {info.tutorName}
+                      </p>
+                      <p className="text-light-gray text-sm mb-4">
+                        {info.status === 'Completado' ? (
+                          <>🔴 Completado</>
+                        ) : (
+                          <>🔴 Próxima sesión: {info.nextSession}</>
+                        )}
+                      </p>
+
+                      {/* Enter Classroom Button */}
+                      <button className="w-full bg-primary hover:bg-primary-hover text-light font-medium py-3 px-4 rounded-lg transition-colors mb-4">
+                        Entrar al Classroom
+                      </button>
+
+                      {/* Chat and Materials */}
+                      <div className="flex space-x-4">
+                        <div className="flex items-center space-x-2 text-light-gray">
+                          <div className="relative">
+                            <MessageCircle className="w-5 h-5" />
+                            {info.chatNotifications > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                {info.chatNotifications}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm">Chat</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-light-gray">
+                          <div className="relative">
+                            <FileText className="w-5 h-5" />
+                            {info.materialsNotifications > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-primary text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                                {info.materialsNotifications}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm">Materiales</span>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-sm">Materiales</span>
                   </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-primary text-light text-center py-4">
-        <div className="flex items-center justify-center space-x-2">
-          <span className="font-bold">TutorMatch</span>
-          <span className="bg-secondary px-2 py-1 rounded text-sm">Classroom</span>
-        </div>
-        <p className="text-sm mt-2 opacity-90">© 2025 TutorMatch. Todos los derechos reservados.</p>
-      </footer>
+      <ClassroomFooter />
     </div>
   );
 };
