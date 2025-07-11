@@ -261,13 +261,18 @@ export class ChatService {
     }
   }
 
-  async sendMessage(roomId: string, content: string, messageType: string = 'text', replyTo?: string, fileDetails?: any): Promise<ChatMessage> {
+  // En el método sendMessage
+  async sendMessage(roomId: string, content: string, messageType: string = 'text', replyTo?: string, fileDetails?: any): Promise<any> {
     try {
       const token = AuthService.getAuthToken();
       
       if (!token) {
         throw new Error('No hay token de autenticación disponible');
       }
+  
+      // Agregar log para debug
+      console.log('Enviando mensaje con token:', token ? 'Token presente' : 'Sin token');
+      console.log('User ID:', AuthService.getCurrentUserId());
       
       const response = await axios.post(
         `${CHAT_API_URL}/messages`,
@@ -285,8 +290,17 @@ export class ChatService {
         }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
+      
+      // Si es error 401, limpiar token expirado
+      if (error.response?.status === 401) {
+        console.log('Token expirado, limpiando localStorage');
+        AuthService.clearCurrentUser();
+        // Redirigir al login o mostrar mensaje de sesión expirada
+        window.location.href = '/login';
+      }
+      
       throw error;
     }
   }
@@ -486,7 +500,6 @@ export class ChatService {
   // Nuevo método para obtener participantes con información del usuario usando Supabase
   async getRoomParticipantsWithUserInfo(roomId: string): Promise<ChatParticipant[]> {
     try {
-      console.log('🔍 getRoomParticipantsWithUserInfo - roomId:', roomId);
       
       const { data, error } = await supabase
         .from('chat_participants')
@@ -501,8 +514,6 @@ export class ChatService {
         `)
         .eq('room_id', roomId);
   
-      console.log('🔍 getRoomParticipantsWithUserInfo - raw data from Supabase:', data);
-      console.log('🔍 getRoomParticipantsWithUserInfo - error from Supabase:', error);
       
       if (error) {
         console.error('Error getting participants with user info:', error);
@@ -510,25 +521,30 @@ export class ChatService {
         return this.getRoomParticipants(roomId);
       }
   
-      if (!data || data.length === 0) {
-        console.warn('No participants found for room:', roomId);
-        return [];
-      }
-  
-      // Log detallado de cada participante
-      data.forEach((participant, index) => {
-        console.log(`🔍 Participante ${index + 1}:`);
-        console.log('  - user_id:', participant.user_id);
-        console.log('  - role:', participant.role);
-        console.log('  - user object:', participant.user);
-        if (participant.user) {
-          console.log('  - first_name:', participant.user.first_name);
-          console.log('  - last_name:', participant.user.last_name);
-          console.log('  - avatar:', participant.user.avatar);
-        }
-      });
-  
-      return data;
+      const result = data?.map(participant => {
+        
+        return {
+          id: participant.id,
+          room_id: participant.room_id,
+          user_id: participant.user_id,
+          role: participant.is_admin ? 'student' : 'tutor',
+          joined_at: participant.joined_at,
+          last_seen: participant.last_seen,
+          user: participant.user ? {
+            id: participant.user.id,
+            first_name: participant.user.first_name || 'Usuario',
+            last_name: participant.user.last_name || '',
+            avatar: participant.user.avatar
+          } : {
+            id: participant.user_id,
+            first_name: 'Usuario',
+            last_name: '',
+            avatar: undefined
+          }
+        };
+      }) || [];
+      
+      return result as ChatParticipant[];
     } catch (error) {
       console.error('Error in getRoomParticipantsWithUserInfo:', error);
       // Fallback al método original

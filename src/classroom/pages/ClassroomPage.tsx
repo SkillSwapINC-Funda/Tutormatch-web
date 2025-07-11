@@ -12,7 +12,6 @@ const ClassroomPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAllTutorials, setShowAllTutorials] = useState(false);
 
-  // Estado para los cursos reales
   const [courses, setCourses] = useState<TutoringSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +22,6 @@ const ClassroomPage = () => {
     materialsNotifications: number;
   }>>({});
 
-  // Estados para las reservas
   const [userId, setUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [tutorBookings, setTutorBookings] = useState<ClassroomBookingWithProfiles[]>([]);
@@ -33,18 +31,13 @@ const ClassroomPage = () => {
     email: string;
   }>>({});
 
-  // Nuevo estado para reservas del tutor
   const [, setActiveBookings] = useState<ClassroomBookingWithProfiles[]>([]);
   const [, setLoadingBookings] = useState(false);
 
   useEffect(() => {
-    // Obtener información del usuario actual
     const currentUserId = localStorage.getItem("currentUserId");
     const userRole = localStorage.getItem("currentUserRole");
     
-    console.log('🔍 DEBUG ClassroomPage:');
-    console.log('userId:', currentUserId);
-    console.log('userRole:', userRole);
     
     setUserId(currentUserId);
     setCurrentUserRole(userRole);
@@ -56,20 +49,12 @@ const ClassroomPage = () => {
         const data = await TutoringService.getAllTutoringSessions();
         setCourses(data);
         
-        // Si es tutor, obtener sus reservas
         if (userRole === 'tutor' && currentUserId) {
-          console.log('👨‍🏫 Es tutor, obteniendo reservas para userId:', currentUserId);
           const allBookings = await ClassroomBookingService.getTutorSessions(currentUserId);
-          console.log('📚 Todas las reservas del tutor:', allBookings);
           
           const activeBookings = allBookings.filter(b => b.status === 'active');
-          console.log('✅ Reservas activas:', activeBookings);
           
           setTutorBookings(activeBookings);
-        } else {
-          console.log('❌ No es tutor o no hay userId');
-          console.log('Condición: userRole === "tutor":', userRole === 'tutor');
-          console.log('Condición: userId existe:', !!currentUserId);
         }
       } catch (err: any) {
         setError('Error al cargar las tutorías.');
@@ -81,7 +66,6 @@ const ClassroomPage = () => {
     fetchCourses();
   }, []);
 
-  // Cargar información de estudiantes para las reservas
   useEffect(() => {
     const loadStudentInfo = async () => {
       const studentIds = [...new Set(tutorBookings.map(b => b.student_id))];
@@ -124,7 +108,6 @@ const ClassroomPage = () => {
     if ((course as any).tutor && (course as any).tutor.firstName) {
       tutorName = `${(course as any).tutor.firstName} ${(course as any).tutor.lastName || ''}`.trim();
     } else if (course.tutorId) {
-      // Buscar nombre real del tutor desde el perfil
       try {
         const user = await UserService.getUserById(course.tutorId);
         tutorName = `${user.firstName} ${user.lastName}`.trim();
@@ -175,7 +158,6 @@ const ClassroomPage = () => {
     return () => { isMounted = false; };
   }, [courses]);
 
-  // Función para obtener reservas activas del tutor
   const fetchTutorActiveBookings = async () => {
     if (currentUserRole !== 'tutor' || !userId) return;
     
@@ -183,7 +165,6 @@ const ClassroomPage = () => {
     try {
       const bookings = await ClassroomBookingService.getTutorActiveBookings(userId);
       setActiveBookings(bookings);
-      console.log('Reservas activas del tutor:', bookings);
     } catch (error) {
       console.error('Error obteniendo reservas del tutor:', error);
     } finally {
@@ -198,14 +179,11 @@ const ClassroomPage = () => {
 
   return (
     <div className="min-h-screen bg-dark text-light flex flex-col">
-      {/* Header */}
       <ClassroomNavbar />
 
-      {/* Main Content */}
       <main className="flex-1 px-6 py-8">
         <h2 className="text-2xl font-bold mb-8">Tutorías disponibles en Classroom</h2>
 
-        {/* DEBUGGING: Mostrar información de debug */}
         <div className="mb-4 p-4 bg-yellow-900 border border-yellow-600 rounded-lg text-yellow-100">
           <h3 className="font-bold mb-2">🔍 DEBUG INFO:</h3>
           <p>Rol actual: <strong>{currentUserRole || 'null'}</strong></p>
@@ -214,7 +192,6 @@ const ClassroomPage = () => {
           <p>Condición para mostrar sección: <strong>{currentUserRole === 'tutor' && tutorBookings.length > 0 ? 'SÍ' : 'NO'}</strong></p>
         </div>
 
-        {/* Mostrar reservas activas si es tutor */}
         {currentUserRole === 'tutor' && tutorBookings.length > 0 && (
           <div className="mb-8 p-6 bg-dark-card border border-dark-border rounded-lg">
             <div className="flex items-center space-x-2 mb-4">
@@ -277,7 +254,6 @@ const ClassroomPage = () => {
           </div>
         )}
 
-        {/* Search and Filter */}
         <div className="flex items-center space-x-4 mb-8">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-light-gray w-5 h-5" />
@@ -298,7 +274,6 @@ const ClassroomPage = () => {
           </button>
         </div>
 
-        {/* Courses Grid */}
         {loading ? (
           <div className="text-center text-light-gray py-12">Cargando tutorías...</div>
         ) : error ? (
@@ -332,7 +307,6 @@ const ClassroomPage = () => {
         )}
       </main>
 
-      {/* Footer */}
       <ClassroomFooter />
     </div>
   );
