@@ -168,9 +168,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     } else {
       return (
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-          message.sender.role === 'tutor' 
-            ? 'bg-primary text-light' 
-            : 'bg-dark-light text-light'
+          isCurrentUser
+            ? 'bg-primary text-white border-2 border-primary-light' // Más distintivo para usuario actual
+            : message.sender.role === 'tutor' 
+              ? 'bg-orange-500 text-white border-2 border-orange-300' // Color distintivo para tutor
+              : 'bg-gray-500 text-white border-2 border-gray-300' // Color para otros estudiantes
         }`}>
           {message.sender.name.charAt(0).toUpperCase()}
         </div>
@@ -179,37 +181,56 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   };
 
   return (
-    <div className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+    <div className={`flex gap-3 mb-4 ${
+      isCurrentUser ? 'flex-row-reverse' : 'flex-row'
+    }`}>
       {renderAvatar()}
       
       <div className={`flex flex-col max-w-[70%] ${
         isCurrentUser ? 'items-end' : 'items-start'
       }`}>
-        {!isCurrentUser && (
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-xs font-medium ${isTutor ? 'text-primary' : 'text-light'}`}>
-              {message.sender.name}
+        {/* Mostrar nombre del remitente siempre, con estilos diferentes */}
+        <div className={`flex items-center gap-2 mb-1 ${
+          isCurrentUser ? 'flex-row-reverse' : 'flex-row'
+        }`}>
+          <span className={`text-xs font-medium ${
+            isCurrentUser 
+              ? 'text-primary font-bold' // Destacar "Tú" 
+              : isTutor 
+                ? 'text-orange-400 font-semibold' 
+                : 'text-gray-300'
+          }`}>
+            {isCurrentUser ? 'Tú' : message.sender.name}
+          </span>
+          {isTutor && (
+            <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-medium">
+              Tutor
             </span>
-            {isTutor && (
-              <span className="bg-primary text-light text-xs px-2 py-0.5 rounded-full font-medium">
-                Tutor
-              </span>
-            )}
-          </div>
-        )}        <div className={`rounded-lg text-sm min-w-0 ${
+          )}
+          {isCurrentUser && !isTutor && (
+            <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full font-medium">
+              Tú
+            </span>
+          )}
+        </div>
+
+        <div className={`rounded-lg text-sm min-w-0 shadow-md ${
           isCurrentUser
-            ? 'bg-primary text-light shadow-sm'
+            ? 'bg-primary text-white border-l-4 border-primary-light' // Más distintivo para mensajes propios
             : isTutor
-              ? 'bg-dark-border border border-dark-border text-light'
-              : 'bg-dark-light text-light border border-dark-border'
-        } ${message.type !== 'text' ? 'p-0 overflow-hidden' : 'px-3 py-2'}`}>
+              ? 'bg-orange-50 border border-orange-200 text-gray-800 border-l-4'
+              : 'bg-gray-100 text-gray-800 border border-gray-400 border-l-4'
+        } ${message.type !== 'text' ? 'p-0 overflow-hidden' : 'px-4 py-3'}`}>
           {message.type === 'text' ? (
             <p className="whitespace-pre-wrap break-words hyphens-auto">{message.content}</p>
           ) : (
             renderMessageContent()
           )}
         </div>
-          <span className="text-xs text-light-gray mt-1 opacity-75">
+        
+        <span className={`text-xs mt-1 opacity-75 ${
+          isCurrentUser ? 'text-primary-light' : 'text-gray-400'
+        }`}>
           {message.timestamp.toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 

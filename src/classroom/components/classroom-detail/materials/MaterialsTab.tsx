@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Eye, ExternalLink, FileText, Download, Grid3X3 } from 'lucide-react';
+import { List, Eye, FileText, Download, Grid3X3 } from 'lucide-react';
 
 interface Material {
   id: number;

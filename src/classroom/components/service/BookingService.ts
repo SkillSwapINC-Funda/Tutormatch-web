@@ -31,6 +31,7 @@ export interface ClassroomBookingWithProfiles extends ClassroomBooking {
 
 export class ClassroomBookingService {
   // Crear reserva cuando el estudiante entra al classroom
+  // En el método joinTutoringSession
   static async joinTutoringSession(
     tutoringSessionId: string, 
     studentId: string, 
@@ -42,6 +43,14 @@ export class ClassroomBookingService {
       
       if (existingBooking) {
         console.log('Reserva existente encontrada:', existingBooking);
+        
+        // Asegurar que el chat room existe y el usuario está agregado
+        try {
+          await chatService.createOrJoinTutoringRoom(tutoringSessionId);
+        } catch (chatError) {
+          console.error('Error con sala de chat:', chatError);
+        }
+        
         return existingBooking;
       }
 
@@ -67,7 +76,7 @@ export class ClassroomBookingService {
 
       console.log('Nueva reserva creada:', data);
 
-      // Crear o unirse a la sala de chat
+      // Crear o unirse a la sala de chat (mejorado)
       try {
         await chatService.createOrJoinTutoringRoom(tutoringSessionId);
       } catch (chatError) {
