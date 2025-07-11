@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageCircle, FileText, Info, Video } from 'lucide-react';
+import { MessageCircle, Info, Video } from 'lucide-react';
 import ClassroomNavbar from '../components/ClassroomNavbar';
 import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
-import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
 import VideoCallModal from '../components/classroom-detail/videocall/components/VideoCallModal';
 import { TutoringService } from '../../tutoring/services/TutoringService';
@@ -20,12 +19,10 @@ import { useVideoCallStatus } from '../hooks/useVideoCallStatus';
 const BACKEND_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
 
 type TabType = 'chat' | 'materials' | 'information';
-type ViewMode = 'list' | 'grid';
 
 const ClassroomDetails: React.FC = () => {
   const { tutoringId } = useParams<{ tutoringId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('chat');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingStatus, setBookingStatus] = useState<string>('');
@@ -128,11 +125,6 @@ const ClassroomDetails: React.FC = () => {
     return fullName || 'Tutor no identificado';
   };
 
-  // Función para determinar si el usuario actual puede subir materiales
-  const canUploadMaterials = () => {
-    const currentUserId = AuthService.getCurrentUserId();
-    return currentUserId === tutoring?.tutorId; // Solo el tutor puede subir materiales
-  };
 
   // Mostrar loading
   if (loading) {

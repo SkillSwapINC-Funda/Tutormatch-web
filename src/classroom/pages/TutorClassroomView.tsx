@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageCircle, FileText, Info, Video, User, Clock, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Info, Video, User, Clock, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ClassroomNavbar from '../components/ClassroomNavbar';
 import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
-import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
 import VideoCallModal from '../components/classroom-detail/videocall/components/VideoCallModal';
 import { TutoringService } from '../../tutoring/services/TutoringService';
@@ -23,7 +22,6 @@ const TutorClassroomView: React.FC = () => {
   const { tutoringId, studentId } = useParams<{ tutoringId: string; studentId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
-  const [viewMode, setViewMode] = useState('list');
   const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
 
   // Estados para datos reales
