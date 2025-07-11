@@ -184,14 +184,6 @@ const ClassroomPage = () => {
       <main className="flex-1 px-6 py-8">
         <h2 className="text-2xl font-bold mb-8">Tutorías disponibles en Classroom</h2>
 
-        <div className="mb-4 p-4 bg-yellow-900 border border-yellow-600 rounded-lg text-yellow-100">
-          <h3 className="font-bold mb-2">🔍 DEBUG INFO:</h3>
-          <p>Rol actual: <strong>{currentUserRole || 'null'}</strong></p>
-          <p>Es tutor: <strong>{currentUserRole === 'tutor' ? 'SÍ' : 'NO'}</strong></p>
-          <p>Reservas encontradas: <strong>{tutorBookings.length}</strong></p>
-          <p>Condición para mostrar sección: <strong>{currentUserRole === 'tutor' && tutorBookings.length > 0 ? 'SÍ' : 'NO'}</strong></p>
-        </div>
-
         {currentUserRole === 'tutor' && tutorBookings.length > 0 && (
           <div className="mb-8 p-6 bg-dark-card border border-dark-border rounded-lg">
             <div className="flex items-center space-x-2 mb-4">

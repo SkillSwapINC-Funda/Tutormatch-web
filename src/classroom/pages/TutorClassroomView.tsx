@@ -210,7 +210,7 @@ const TutorClassroomView: React.FC = () => {
             <MessageCircle className="w-4 h-4" />
             <span>Chat</span>
           </button>
-          <button
+{/*           <button
             onClick={() => setActiveTab('materials')}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
               activeTab === 'materials'
@@ -220,7 +220,7 @@ const TutorClassroomView: React.FC = () => {
           >
             <FileText className="w-4 h-4" />
             <span>Materiales</span>
-          </button>
+          </button> */}
           <button
             onClick={() => setActiveTab('info')}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
@@ -248,14 +248,14 @@ const TutorClassroomView: React.FC = () => {
               classroomId={tutoringId!}
             />
           )}
-          {activeTab === 'materials' && (
+{/*           {activeTab === 'materials' && (
             <MaterialsTab 
               tutoringId={tutoringId!}
               materials={[]} 
               viewMode={viewMode as 'list' | 'grid'}
               setViewMode={setViewMode}
             />
-          )}
+          )} */}
           {activeTab === 'info' && (
             <InformationTab 
               tutoring={tutoring} 

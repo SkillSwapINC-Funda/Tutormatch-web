@@ -100,7 +100,6 @@ const ClassroomDetails: React.FC = () => {
   // MOVER EL HOOK AQUÍ - después del useEffect de carga de datos
   const { hasActiveCall, activeCall, loading: videoCallLoading } = useVideoCallStatus(tutoringId);
 
-
   // NUEVA FUNCIÓN: Manejar reserva automática del estudiante
   const handleStudentBooking = async (tutoringSessionId: string, studentId: string, tutorId: string) => {
     try {
@@ -129,13 +128,11 @@ const ClassroomDetails: React.FC = () => {
     return fullName || 'Tutor no identificado';
   };
 
-  const materials = [
-    { id: 1, name: 'Introducción a Árboles Binarios.pdf', size: '2.3 MB', date: '31 de mayo de 2025', type: 'pdf', icon: '📄' },
-    { id: 2, name: 'Algoritmos de Búsqueda en Árboles.docx', size: '1.8 MB', date: '2 de junio de 2025', type: 'docx', icon: '📄' },
-    { id: 3, name: 'Presentación - Tipos de Árboles.pptx', size: '4.2 MB', date: '3 de junio de 2025', type: 'pptx', icon: '📊' },
-    { id: 4, name: 'Ejercicios Prácticos - Datos.xlsx', size: '856 KB', date: '3 de junio de 2025', type: 'xlsx', icon: '📊' },
-    { id: 5, name: 'Video Explicativo - Recorridos.mp4', size: '45.2 MB', date: '4 de junio de 2025', type: 'mp4', icon: '▶️' }
-  ];
+  // Función para determinar si el usuario actual puede subir materiales
+  const canUploadMaterials = () => {
+    const currentUserId = AuthService.getCurrentUserId();
+    return currentUserId === tutoring?.tutorId; // Solo el tutor puede subir materiales
+  };
 
   // Mostrar loading
   if (loading) {
@@ -219,30 +216,33 @@ const ClassroomDetails: React.FC = () => {
         <div className="flex space-x-8">
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'chat'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-light-gray hover:text-light'
-              }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'chat'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-light-gray hover:text-light'
+            }`}
           >
             <MessageCircle className="w-4 h-4" />
             <span>Chat</span>
           </button>
-          <button
+         {/*  <button
             onClick={() => setActiveTab('materials')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'materials'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-light-gray hover:text-light'
-              }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'materials'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-light-gray hover:text-light'
+            }`}
           >
             <FileText className="w-4 h-4" />
             <span>Materiales</span>
-          </button>
+          </button> */}
           <button
             onClick={() => setActiveTab('information')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'information'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-light-gray hover:text-light'
-              }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'information'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-light-gray hover:text-light'
+            }`}
           >
             <Info className="w-4 h-4" />
             <span>Información</span>
@@ -254,14 +254,14 @@ const ClassroomDetails: React.FC = () => {
         {activeTab === 'chat' && (
           <ChatTab classroomId={String(tutoringId)} />
         )}
-        {activeTab === 'materials' && (
+        {/* {activeTab === 'materials' && (
           <MaterialsTab
             tutoringId={tutoringId!}
-            materials={materials}
             viewMode={viewMode}
             setViewMode={(mode: 'list' | 'grid') => setViewMode(mode)}
+            canUpload={canUploadMaterials()}
           />
-        )}
+        )} */}
         {activeTab === 'information' && (
           <InformationTab
             tutoring={tutoring}
