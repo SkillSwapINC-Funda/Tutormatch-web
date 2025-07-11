@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { MessageCircle, FileText, Info } from 'lucide-react';
+import { MessageCircle, FileText, Info, Video } from 'lucide-react';
 import ClassroomNavbar from '../components/ClassroomNavbar';
 import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
@@ -131,12 +131,56 @@ const ClassroomDetails: React.FC = () => {
     );
   }
 
+  // Función para manejar la videollamada
+  const handleVideoCall = () => {
+    // Obtener las dimensiones de la pantalla completa
+    const screenWidth = window.screen.width;
+    const screenHeight = window.screen.height;
+    
+    // Dimensiones de la ventana de videollamada
+    const width = 1200;
+    const height = 800;
+    
+    // Calcular la posición para centrar perfectamente en toda la pantalla
+    const left = Math.max(0, Math.round((screenWidth - width) / 2));
+    const top = Math.max(0, Math.round((screenHeight - height) / 2));
+    
+    // Abrir la página de videollamada en una nueva ventana centrada
+    const videoCallUrl = `/classroom/${tutoringId}/videocall`;
+    const windowFeatures = `width=${width},height=${height},left=${left},top=${top},scrollbars=no,resizable=yes,toolbar=no,menubar=no,location=no,status=no`;
+    
+    const videoCallWindow = window.open(videoCallUrl, 'VideoCall', windowFeatures);
+    
+    if (videoCallWindow) {
+      videoCallWindow.focus();
+      // Forzar el centrado después de que la ventana se abra
+      setTimeout(() => {
+        videoCallWindow.moveTo(left, top);
+        videoCallWindow.resizeTo(width, height);
+      }, 100);
+      console.log('Ventana de videollamada abierta en el centro de la pantalla');
+    } else {
+      console.error('No se pudo abrir la ventana de videollamada. Verifica que los pop-ups estén permitidos.');
+      alert('No se pudo abrir la ventana de videollamada. Por favor, permite los pop-ups para este sitio.');
+    }
+  };
+
   return (
     <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
       <ClassroomNavbar />
       <div className="px-6 pt-6 flex-shrink-0">
-        <div className="mb-4 text-lg font-bold">
-          <b>{tutoring?.title || tutoringId}</b> • <span>{getTutorName()}</span>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-lg font-bold">
+            <b>{tutoring?.title || tutoringId}</b> • <span>{getTutorName()}</span>
+          </div>
+          {/* Botón de videollamada */}
+          <button
+            onClick={handleVideoCall}
+            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+          >
+            <Video className="w-5 h-5" />
+            <span>Videollamada</span>
+          </button>
         </div>
       </div>
       {/* Navigation Tabs */}
