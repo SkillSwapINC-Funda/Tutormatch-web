@@ -1,16 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { useChat } from '../chat/hooks/useChat';
 import ChatMessage from '../chat/components/ChatMessage';
 import ChatInput from '../chat/components/ChatInput';
 import UsersList from '../chat/components/UsersList';
+import { useChat } from './hooks/useChat';
 
 interface ChatTabProps {
   classroomId: string;
 }
 
 const ChatTab: React.FC<ChatTabProps> = ({ classroomId }) => {
-  const { messages, users, isLoading, sendMessage, sendCodeMessage, sendFileMessage } = useChat(classroomId);
+  const { messages, users, isLoading, tutorInfo, sendMessage, sendCodeMessage, sendFileMessage } = useChat(classroomId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ const ChatTab: React.FC<ChatTabProps> = ({ classroomId }) => {
             <div className="min-w-0 flex-1">
               <h2 className="font-semibold text-light text-sm sm:text-base truncate">Chat Privado</h2>
               <p className="text-xs sm:text-sm text-light-gray truncate">
-                Sesión de tutoría 1 a 1 - Algoritmos y Estructura de datos
+                {tutorInfo ? `Sesión con ${tutorInfo.firstName} ${tutorInfo.lastName}` : 'Sesión de tutoría 1 a 1'}
               </p>
             </div>
           </div>
@@ -54,7 +54,7 @@ const ChatTab: React.FC<ChatTabProps> = ({ classroomId }) => {
                 ¡Comienza tu sesión de tutoría!
               </h3>
               <p className="text-sm sm:text-base text-light-gray">
-                Pregúntale a tu tutor cualquier duda que tengas
+                {tutorInfo ? `Pregúntale a ${tutorInfo.firstName} cualquier duda que tengas` : 'Pregúntale a tu tutor cualquier duda que tengas'}
               </p>
             </div>
           ) : (
@@ -82,7 +82,7 @@ const ChatTab: React.FC<ChatTabProps> = ({ classroomId }) => {
             onSendMessage={sendMessage}
             onSendCode={sendCodeMessage}
             onSendFile={sendFileMessage}
-            placeholder="Escribe tu pregunta a tu tutor..."
+            placeholder={tutorInfo ? `Escribe tu pregunta a ${tutorInfo.firstName}...` : "Escribe tu pregunta a tu tutor..."}
           />
         </div>
       </div>

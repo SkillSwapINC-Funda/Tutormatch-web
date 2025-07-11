@@ -19,7 +19,6 @@ const ClassroomCourseCard = ({
   title,
   tutorName,
   status,
-  nextSession,
   chatNotifications,
   materialsNotifications,
   imageUrl,
@@ -63,14 +62,6 @@ const ClassroomCourseCard = ({
         <p className="text-light-gray text-sm mb-1">
           Tutor: {tutorName}
         </p>
-        <p className="text-light-gray text-sm mb-4">
-          {status === 'Completado' ? (
-            <>🔴 Completado</>
-          ) : (
-            <>🔴 Próxima sesión: {nextSession}</>
-          )}
-        </p>
-
         {/* Enter Classroom Button */}
         <button
           className="w-full bg-primary hover:bg-primary-hover text-light font-medium py-3 px-4 rounded-lg transition-colors mb-4"

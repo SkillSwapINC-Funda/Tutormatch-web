@@ -2,14 +2,14 @@ import React from 'react'
 import { FileText, Code, Download } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import type { ChatMessage as ChatMessageType } from "../hooks/useChat"
+import type { ChatMessage as ChatMessageType } from '../hooks/useChat' 
 
 interface ChatMessageProps {
   message: ChatMessageType
   showAvatar?: boolean
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, showAvatar = true }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   const isCurrentUser = message.sender.isCurrentUser
   const isTutor = message.sender.role === 'tutor'
 
@@ -61,7 +61,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, showAvatar = true })
                   {message.codeLanguage || 'código'}
                 </span>
               </div>
-            </div>            <div className="max-h-96 overflow-auto scrollbar-thin">
+            </div>            
+            <div className="max-h-96 overflow-auto scrollbar-thin">
               <SyntaxHighlighter
                 language={getLanguageForHighlighter(message.codeLanguage)}
                 style={vscDarkPlus}
@@ -155,26 +156,36 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, showAvatar = true })
     }
   }
 
-  return (
-    <div className={`flex gap-3 mb-4 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>      {showAvatar && (
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shadow-sm ${
-          isTutor 
+  const renderAvatar = () => {
+    if (message.sender.avatar) {
+      return (
+        <img 
+          src={message.sender.avatar} 
+          alt={message.sender.name}
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      );
+    } else {
+      return (
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+          message.sender.role === 'tutor' 
             ? 'bg-primary text-light' 
-            : isCurrentUser 
-              ? 'bg-dark-light text-light border border-dark-border' 
-              : 'bg-dark-card text-light border border-dark-border'
+            : 'bg-dark-light text-light'
         }`}>
           {message.sender.name.charAt(0).toUpperCase()}
         </div>
-      )}      <div className={`flex flex-col ${
-        message.type === 'code' 
-          ? 'max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-2xl' 
-          : message.type === 'image' 
-            ? 'max-w-xs sm:max-w-sm md:max-w-md' 
-            : message.type === 'document' 
-              ? 'max-w-xs sm:max-w-sm md:max-w-md'
-              : 'max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg' 
-      } ${isCurrentUser ? 'items-end' : 'items-start'}`}>{!isCurrentUser && (
+      );
+    }
+  };
+
+  return (
+    <div className={`flex gap-3 ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
+      {renderAvatar()}
+      
+      <div className={`flex flex-col max-w-[70%] ${
+        isCurrentUser ? 'items-end' : 'items-start'
+      }`}>
+        {!isCurrentUser && (
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-xs font-medium ${isTutor ? 'text-primary' : 'text-light'}`}>
               {message.sender.name}
@@ -206,7 +217,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, showAvatar = true })
         </span>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default ChatMessage
