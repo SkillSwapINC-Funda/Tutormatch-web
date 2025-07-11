@@ -5,25 +5,18 @@ interface ClassroomCourseCardProps {
   id: string;
   title: string;
   tutorName: string;
-  status: string;
-  nextSession: string;
   chatNotifications: number;
   materialsNotifications: number;
   imageUrl?: string | null;
-  getStatusColor: (status: string) => string;
-  getStatusText: (status: string) => string;
 }
 
 const ClassroomCourseCard = ({
   id,
   title,
   tutorName,
-  status,
   chatNotifications,
   materialsNotifications,
-  imageUrl,
-  getStatusColor,
-  getStatusText,
+  imageUrl
 }: ClassroomCourseCardProps) => {
   const navigate = useNavigate();
   const handleEnterClassroom = () => {
@@ -50,11 +43,6 @@ const ClassroomCourseCard = ({
       {/* Course Info */}
       <div className="px-4 py-4">
         {/* Status Badge */}
-        <div className="mb-3">
-          <span className={`inline-block px-3 py-1 rounded text-sm font-medium text-light ${getStatusColor(status)}`}>
-            {getStatusText(status)}
-          </span>
-        </div>
 
         <h3 className="text-lg font-semibold mb-2 text-light leading-tight">
           {title}

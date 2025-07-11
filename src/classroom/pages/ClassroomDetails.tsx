@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageCircle, FileText, Info } from 'lucide-react';
 import ClassroomNavbar from '../components/ClassroomNavbar';
@@ -6,24 +6,90 @@ import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
 import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
+import { TutoringService } from '../../tutoring/services/TutoringService';
+import { UserService } from '../../user/services/UserService';
+import { AuthService } from '../../public/services/authService';
+import { TutoringSession } from '../../tutoring/types/Tutoring';
+import { User } from '../../user/types/User';
+import { Course } from '../../course/types/Course';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
 
 const ClassroomDetails: React.FC = () => {
   const { tutoringId } = useParams<{ tutoringId: string }>();
   const [activeTab, setActiveTab] = useState('chat');
   const [viewMode, setViewMode] = useState('list');
 
-  // Datos de ejemplo - estos vendrán de tu API
-  const courseInfo = {
-    title: 'Algoritmos y Estructura de datos: Árboles Binarios',
-    tutor: 'Ana Martínez',
-    description: 'Comprenderla nos permite evaluar la eficiencia de nuestros algoritmos y tomar decisiones informadas al seleccionar las mejores herramientas para nuestros proyectos.',
-    startDate: '6 de mayo de 2025',
-    endDate: '5 de julio de 2025',
-    sessions: '2 de 8 completadas',
-    type: 'Personalizada (1 a 1)',
-    tutorBio: 'Ingeniero de Software con más de 8 años de experiencia. Especialista en algoritmos y estructuras de datos. Profesor universitario y mentor de estudiantes de Ingeniería.',
-    studentName: 'María García',
-    studentBio: 'Estudiante de Ingeniería de Software, cursando el 6to semestre. Interesada en algoritmos y desarrollo web.'
+  // Estados para datos reales
+  const [tutoring, setTutoring] = useState<TutoringSession | null>(null);
+  const [tutor, setTutor] = useState<User | null>(null);
+  const [student, setStudent] = useState<User | null>(null);
+  const [course, setCourse] = useState<Course | null>(null); // Agregar course al estado
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Función para obtener datos reales
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!tutoringId) {
+        setError('ID de tutoría no proporcionado');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // 1. Obtener información de la tutoría
+        const tutoringData = await TutoringService.getTutoringSession(tutoringId);
+        setTutoring(tutoringData);
+
+        // 2. Obtener información del tutor
+        if (tutoringData.tutorId) {
+          const tutorData = await UserService.getUserById(tutoringData.tutorId);
+          setTutor(tutorData);
+        }
+
+        // 3. Obtener información del curso
+        if (tutoringData.courseId) {
+          try {
+            const courseResponse = await axios.get(`${API_URL}/courses/${tutoringData.courseId}`);
+            setCourse(courseResponse.data);
+          } catch (courseError) {
+            console.warn('Error al obtener información del curso:', courseError);
+          }
+        }
+
+        // 4. Obtener información del estudiante actual (solo si no es el tutor)
+        const currentUserId = AuthService.getCurrentUserId();
+        if (currentUserId && currentUserId !== tutoringData.tutorId) {
+          try {
+            const studentData = await UserService.getUserById(currentUserId);
+            setStudent(studentData);
+          } catch (studentError) {
+            console.warn('Error al obtener información del estudiante:', studentError);
+          }
+        }
+
+      } catch (err: any) {
+        console.error('Error al cargar datos de la tutoría:', err);
+        setError(err.message || 'Error al cargar los datos');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [tutoringId]);
+
+
+  // Función para obtener el nombre completo del tutor
+  const getTutorName = () => {
+    if (!tutor) return 'Tutor no identificado';
+    const fullName = `${tutor.firstName || ''} ${tutor.lastName || ''}`.trim();
+    return fullName || 'Tutor no identificado';
   };
 
   const materials = [
@@ -34,22 +100,43 @@ const ClassroomDetails: React.FC = () => {
     { id: 5, name: 'Video Explicativo - Recorridos.mp4', size: '45.2 MB', date: '4 de junio de 2025', type: 'mp4', icon: '▶️' }
   ];
 
-  const syllabus = [
-    'Introducción a la Complejidad Algorítmica',
-    'Análisis de Algoritmos Recursivos',
-    'Algoritmos de Ordenamiento',
-    'Algoritmos de Búsqueda',
-    'Estructuras de Datos Avanzadas',
-    'Algoritmos Voraces (Greedy)',
-    'Programación Dinámica',
-    'Algoritmos de Grafos'
-  ];
+  // Mostrar loading
+  if (loading) {
+    return (
+      <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
+        <ClassroomNavbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-light-gray">Cargando información de la tutoría...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mostrar error
+  if (error) {
+    return (
+      <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
+        <ClassroomNavbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-red-500 text-xl mb-4">⚠️</div>
+            <p className="text-light-gray mb-4">Error al cargar la tutoría</p>
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
       <ClassroomNavbar />
       <div className="px-6 pt-6 flex-shrink-0">
         <div className="mb-4 text-lg font-bold">
-          Classroom details de la tutoría: <b>{tutoringId}</b>
+          <b>{tutoring?.title || tutoringId}</b> • <span>{getTutorName()}</span>
         </div>
       </div>
       {/* Navigation Tabs */}
@@ -57,33 +144,30 @@ const ClassroomDetails: React.FC = () => {
         <div className="flex space-x-8">
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'chat'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-light-gray hover:text-light'
-            }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'chat'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-light-gray hover:text-light'
+              }`}
           >
             <MessageCircle className="w-4 h-4" />
             <span>Chat</span>
           </button>
           <button
             onClick={() => setActiveTab('materials')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'materials'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-light-gray hover:text-light'
-            }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'materials'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-light-gray hover:text-light'
+              }`}
           >
             <FileText className="w-4 h-4" />
             <span>Materiales</span>
           </button>
           <button
             onClick={() => setActiveTab('information')}
-            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'information'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-light-gray hover:text-light'
-            }`}
+            className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'information'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-light-gray hover:text-light'
+              }`}
           >
             <Info className="w-4 h-4" />
             <span>Información</span>
@@ -99,7 +183,13 @@ const ClassroomDetails: React.FC = () => {
           <MaterialsTab materials={materials} viewMode={viewMode} setViewMode={setViewMode} />
         )}
         {activeTab === 'information' && (
-          <InformationTab courseInfo={courseInfo} syllabus={syllabus} />
+          <InformationTab
+            tutoring={tutoring}
+            tutor={tutor || undefined}
+            student={student || undefined}
+            reviews={[]}
+            course={course || undefined}
+          />
         )}
       </main>
       <div className="flex-shrink-0">
@@ -110,3 +200,4 @@ const ClassroomDetails: React.FC = () => {
 };
 
 export default ClassroomDetails;
+

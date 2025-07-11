@@ -17,7 +17,6 @@ const ClassroomPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [courseInfoMap, setCourseInfoMap] = useState<Record<string, {
     tutorName: string;
-    status: string;
     nextSession: string;
     chatNotifications: number;
     materialsNotifications: number;
@@ -39,32 +38,9 @@ const ClassroomPage = () => {
     fetchCourses();
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'En curso':
-        return 'bg-green-500';
-      case 'Completado':
-        return 'bg-blue-500';
-      default:
-        return 'bg-light-gray';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'En curso':
-        return 'En curso';
-      case 'Completado':
-        return 'Completado';
-      default:
-        return status;
-    }
-  };
-
 
   async function calcularInfoCurso(course: TutoringSession): Promise<{
     tutorName: string;
-    status: string;
     nextSession: string;
     chatNotifications: number;
     materialsNotifications: number;
@@ -82,7 +58,6 @@ const ClassroomPage = () => {
       }
     }
 
-    let status = 'Completado';
     let nextSession = '';
     const now = new Date();
     if (course.availableTimes && course.availableTimes.length > 0) {
@@ -98,7 +73,6 @@ const ClassroomPage = () => {
         })
         .filter(Boolean) as Date[];
       if (future.length > 0) {
-        status = 'En curso';
         const next = future.sort((a, b) => a.getTime() - b.getTime())[0];
         nextSession = next.toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' });
       }
@@ -107,7 +81,7 @@ const ClassroomPage = () => {
     const chatNotifications = 0;
     const materialsNotifications = 0;
 
-    return { tutorName, status, nextSession, chatNotifications, materialsNotifications };
+    return { tutorName, nextSession, chatNotifications, materialsNotifications };
   }
 
   useEffect(() => {
@@ -169,7 +143,6 @@ const ClassroomPage = () => {
               courses.map((course) => {
                 const info = courseInfoMap[course.id] || {
                   tutorName: 'Desconocido',
-                  status: 'Completado',
                   nextSession: '',
                   chatNotifications: 0,
                   materialsNotifications: 0,
@@ -180,13 +153,9 @@ const ClassroomPage = () => {
                     id={course.id}
                     title={course.title}
                     tutorName={info.tutorName}
-                    status={info.status}
-                    nextSession={info.nextSession}
                     chatNotifications={info.chatNotifications}
                     materialsNotifications={info.materialsNotifications}
                     imageUrl={course.imageUrl}
-                    getStatusColor={getStatusColor}
-                    getStatusText={getStatusText}
                   />
                 );
               })
