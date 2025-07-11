@@ -6,30 +6,38 @@ import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
 import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
-import { TutoringService } from '../../tutoring/services/TutoringService';
-import { UserService } from '../../user/services/UserService';
-import { AuthService } from '../../public/services/authService';
-import { TutoringSession } from '../../tutoring/types/Tutoring';
-import { User } from '../../user/types/User';
-import { Course } from '../../course/types/Course';
-import { ClassroomBookingService } from '../components/service/BookingService';
+import VideoCallModal from '../components/classroom-detail/videocall/components/VideoCallModal';
+import { TutoringService } from '../../tutoring/services/TutoringService'; 
+import { UserService } from '../../user/services/UserService';  
+import { ClassroomBookingService } from '../components/service/BookingService'; 
+import { TutoringSession } from '../../tutoring/types/Tutoring'; 
+import { User } from '../../user/types/User'; 
+import { Course } from '../../course/types/Course'; 
 import axios from 'axios';
+import { AuthService } from '../../public/services/authService';
 
-const API_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
+const API_URL = import.meta.env.VITE_TUTORMATCH_MICROSERVICES;
+const BACKEND_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
+
+type TabType = 'chat' | 'materials' | 'information';
+type ViewMode = 'list' | 'grid';
 
 const ClassroomDetails: React.FC = () => {
   const { tutoringId } = useParams<{ tutoringId: string }>();
-  const [activeTab, setActiveTab] = useState('chat');
-  const [viewMode, setViewMode] = useState('list');
-
-  // Estados para datos reales
+  const [activeTab, setActiveTab] = useState<TabType>('chat');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<string>('');
+  
+  // Estados para los datos
   const [tutoring, setTutoring] = useState<TutoringSession | null>(null);
   const [tutor, setTutor] = useState<User | null>(null);
   const [student, setStudent] = useState<User | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [bookingStatus, setBookingStatus] = useState<string>('');
+  
+  // Estado para el modal de videollamada
+  const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
 
   // Función para obtener datos reales
   useEffect(() => {
@@ -57,7 +65,7 @@ const ClassroomDetails: React.FC = () => {
         // 3. Obtener información del curso
         if (tutoringData.courseId) {
           try {
-            const courseResponse = await axios.get(`${API_URL}/courses/${tutoringData.courseId}`);
+            const courseResponse = await axios.get(`${BACKEND_URL}/courses/${tutoringData.courseId}`);
             setCourse(courseResponse.data);
           } catch (courseError) {
             console.warn('Error al obtener información del curso:', courseError);
@@ -156,38 +164,9 @@ const ClassroomDetails: React.FC = () => {
     );
   }
 
-  // Función para manejar la videollamada
+  // Función para manejar la videollamada - ACTUALIZADA
   const handleVideoCall = () => {
-    // Obtener las dimensiones de la pantalla completa
-    const screenWidth = window.screen.width;
-    const screenHeight = window.screen.height;
-    
-    // Dimensiones de la ventana de videollamada
-    const width = 1200;
-    const height = 800;
-    
-    // Calcular la posición para centrar perfectamente en toda la pantalla
-    const left = Math.max(0, Math.round((screenWidth - width) / 2));
-    const top = Math.max(0, Math.round((screenHeight - height) / 2));
-    
-    // Abrir la página de videollamada en una nueva ventana centrada
-    const videoCallUrl = `/classroom/${tutoringId}/videocall`;
-    const windowFeatures = `width=${width},height=${height},left=${left},top=${top},scrollbars=no,resizable=yes,toolbar=no,menubar=no,location=no,status=no`;
-    
-    const videoCallWindow = window.open(videoCallUrl, 'VideoCall', windowFeatures);
-    
-    if (videoCallWindow) {
-      videoCallWindow.focus();
-      // Forzar el centrado después de que la ventana se abra
-      setTimeout(() => {
-        videoCallWindow.moveTo(left, top);
-        videoCallWindow.resizeTo(width, height);
-      }, 100);
-      console.log('Ventana de videollamada abierta en el centro de la pantalla');
-    } else {
-      console.error('No se pudo abrir la ventana de videollamada. Verifica que los pop-ups estén permitidos.');
-      alert('No se pudo abrir la ventana de videollamada. Por favor, permite los pop-ups para este sitio.');
-    }
+    setIsVideoCallModalOpen(true);
   };
 
   return (
@@ -257,7 +236,11 @@ const ClassroomDetails: React.FC = () => {
           <ChatTab classroomId={String(tutoringId)} />
         )}
         {activeTab === 'materials' && (
-          <MaterialsTab materials={materials} viewMode={viewMode} setViewMode={setViewMode} />
+          <MaterialsTab 
+            materials={materials} 
+            viewMode={viewMode} 
+            setViewMode={(mode: 'list' | 'grid') => setViewMode(mode)}
+          />
         )}
         {activeTab === 'information' && (
           <InformationTab
@@ -269,6 +252,15 @@ const ClassroomDetails: React.FC = () => {
           />
         )}
       </main>
+      
+      {/* Modal de videollamada */}
+      <VideoCallModal
+        isOpen={isVideoCallModalOpen}
+        onClose={() => setIsVideoCallModalOpen(false)}
+        roomId={tutoringId}
+        tutoringSessionId={tutoringId}
+      />
+      
       <div className="flex-shrink-0">
         <ClassroomFooter />
       </div>

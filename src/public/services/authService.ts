@@ -31,6 +31,27 @@ export class AuthService {
     static getCurrentUserId(): string | null {
         return localStorage.getItem('currentUserId');
     }
+
+    static async getCurrentUser(): Promise<User | null> {
+        const userId = this.getCurrentUserId();
+        const userRole = this.getCurrentUserRole();
+        
+        if (!userId || !userRole) {
+            return null;
+        }
+
+        try {
+            const userProfile = await this.getCurrentUserProfile();
+            if (!userProfile) {
+                return null;
+            }
+
+            return userProfile;
+        } catch (error) {
+            console.error('Error getting current user:', error);
+            return null;
+        }
+    }
   
     /**
      * Elimina el ID del usuario actual del almacenamiento local

@@ -7,6 +7,7 @@ import ClassroomFooter from '../components/ClassroomFooter';
 import ChatTab from '../components/classroom-detail/chat/ChatTab';
 import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
+import VideoCallModal from '../components/classroom-detail/videocall/components/VideoCallModal';
 import { TutoringService } from '../../tutoring/services/TutoringService';
 import { UserService } from '../../user/services/UserService';
 import { TutoringSession } from '../../tutoring/types/Tutoring';
@@ -16,12 +17,14 @@ import { ClassroomBookingService, ClassroomBooking } from '../components/service
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
+const API_VIDEO_URL = import.meta.env.VITE_TUTORMATCH_MICROSERVICES;
 
 const TutorClassroomView: React.FC = () => {
   const { tutoringId, studentId } = useParams<{ tutoringId: string; studentId: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('chat');
   const [viewMode, setViewMode] = useState('list');
+  const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
 
   // Estados para datos reales
   const [tutoring, setTutoring] = useState<TutoringSession | null>(null);
@@ -84,17 +87,9 @@ const TutorClassroomView: React.FC = () => {
     fetchData();
   }, [tutoringId, studentId]);
 
+  // Función para manejar la videollamada - ACTUALIZADA
   const handleVideoCall = () => {
-    const screenWidth = window.screen.width;
-    const screenHeight = window.screen.height;
-    
-    const videoCallUrl = `/classroom/${tutoringId}/videocall`;
-    
-    window.open(
-      videoCallUrl,
-      'VideoCall',
-      `width=${screenWidth},height=${screenHeight},fullscreen=yes,resizable=yes`
-    );
+    setIsVideoCallModalOpen(true);
   };
 
   const getTutorName = () => {
@@ -255,7 +250,7 @@ const TutorClassroomView: React.FC = () => {
             <MaterialsTab 
               tutoringId={tutoringId!}
               materials={[]} 
-              viewMode={viewMode} 
+              viewMode={viewMode as 'list' | 'grid'}
               setViewMode={setViewMode}
             />
           )}
@@ -271,6 +266,14 @@ const TutorClassroomView: React.FC = () => {
           )}
         </div>
       </main>
+      
+      {/* Modal de videollamada */}
+      <VideoCallModal
+        isOpen={isVideoCallModalOpen}
+        onClose={() => setIsVideoCallModalOpen(false)}
+        roomId={tutoringId}
+        tutoringSessionId={tutoringId}
+      />
       
       <ClassroomFooter />
     </div>

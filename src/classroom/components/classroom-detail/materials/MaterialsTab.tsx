@@ -15,8 +15,8 @@ interface MaterialsTabProps {
   tutoringId?: string;
   classroomId?: string;
   materials?: Material[];
-  viewMode?: string;
-  setViewMode?: (mode: string) => void;
+  viewMode?: 'list' | 'grid';
+  setViewMode?: (mode: 'list' | 'grid') => void;
 }
 
 const MaterialsTab: React.FC<MaterialsTabProps> = ({ 

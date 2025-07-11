@@ -21,7 +21,6 @@ import AdminDashboardPage from './admin/pages/AdminDashboardPage';
 import ClassroomPage from './classroom/pages/ClassroomPage';
 import ClassroomDetails from './classroom/pages/ClassroomDetails';
 import TutorClassroomView from './classroom/pages/TutorClassroomView';
-import VideoCallPage from './classroom/components/classroom-detail/videocall/pages/VideoCallPage';
 
 const App = () => {
   return (
@@ -47,7 +46,6 @@ const App = () => {
           <Route path="/classroom" element={<ClassroomPage />} />
           <Route path="/classroom/details/:tutoringId" element={<ClassroomDetails />} />
           <Route path="/classroom/tutor/:tutoringId/student/:studentId" element={<TutorClassroomView />} />
-          <Route path="/classroom/:tutoringId/videocall" element={<VideoCallPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
