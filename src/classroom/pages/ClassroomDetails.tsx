@@ -7,16 +7,16 @@ import ChatTab from '../components/classroom-detail/chat/ChatTab';
 import MaterialsTab from '../components/classroom-detail/materials/MaterialsTab';
 import InformationTab from '../components/classroom-detail/info/InformationTab';
 import VideoCallModal from '../components/classroom-detail/videocall/components/VideoCallModal';
-import { TutoringService } from '../../tutoring/services/TutoringService'; 
-import { UserService } from '../../user/services/UserService';  
-import { ClassroomBookingService } from '../components/service/BookingService'; 
-import { TutoringSession } from '../../tutoring/types/Tutoring'; 
-import { User } from '../../user/types/User'; 
-import { Course } from '../../course/types/Course'; 
+import { TutoringService } from '../../tutoring/services/TutoringService';
+import { UserService } from '../../user/services/UserService';
+import { ClassroomBookingService } from '../components/service/BookingService';
+import { TutoringSession } from '../../tutoring/types/Tutoring';
+import { User } from '../../user/types/User';
+import { Course } from '../../course/types/Course';
 import axios from 'axios';
 import { AuthService } from '../../public/services/authService';
+import { useVideoCallStatus } from '../hooks/useVideoCallStatus';
 
-const API_URL = import.meta.env.VITE_TUTORMATCH_MICROSERVICES;
 const BACKEND_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
 
 type TabType = 'chat' | 'materials' | 'information';
@@ -29,13 +29,13 @@ const ClassroomDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookingStatus, setBookingStatus] = useState<string>('');
-  
+
   // Estados para los datos
   const [tutoring, setTutoring] = useState<TutoringSession | null>(null);
   const [tutor, setTutor] = useState<User | null>(null);
   const [student, setStudent] = useState<User | null>(null);
   const [course, setCourse] = useState<Course | null>(null);
-  
+
   // Estado para el modal de videollamada
   const [isVideoCallModalOpen, setIsVideoCallModalOpen] = useState(false);
 
@@ -78,7 +78,7 @@ const ClassroomDetails: React.FC = () => {
           try {
             const studentData = await UserService.getUserById(currentUserId);
             setStudent(studentData);
-            
+
             // 5. NUEVA LÓGICA: Crear reserva automática para el estudiante
             await handleStudentBooking(tutoringId, currentUserId, tutoringData.tutorId);
           } catch (studentError) {
@@ -97,21 +97,25 @@ const ClassroomDetails: React.FC = () => {
     fetchData();
   }, [tutoringId]);
 
+  // MOVER EL HOOK AQUÍ - después del useEffect de carga de datos
+  const { hasActiveCall, activeCall, loading: videoCallLoading } = useVideoCallStatus(tutoringId);
+
+
   // NUEVA FUNCIÓN: Manejar reserva automática del estudiante
   const handleStudentBooking = async (tutoringSessionId: string, studentId: string, tutorId: string) => {
     try {
       setBookingStatus('Conectando...');
-      
+
       // Crear o obtener reserva existente
       const booking = await ClassroomBookingService.joinTutoringSession(
-        tutoringSessionId, 
-        studentId, 
+        tutoringSessionId,
+        studentId,
         tutorId
       );
-      
+
       setBookingStatus(`Sesión activa desde ${new Date(booking.joined_at || '').toLocaleString()}`);
       console.log('Reserva procesada:', booking);
-      
+
     } catch (error) {
       console.error('Error en reserva:', error);
       setBookingStatus('Error al conectar a la sesión');
@@ -163,11 +167,13 @@ const ClassroomDetails: React.FC = () => {
       </div>
     );
   }
+  
 
   // Función para manejar la videollamada - ACTUALIZADA
   const handleVideoCall = () => {
     setIsVideoCallModalOpen(true);
   };
+  
 
   return (
     <div className="h-screen bg-dark text-light flex flex-col overflow-hidden">
@@ -184,13 +190,26 @@ const ClassroomDetails: React.FC = () => {
                 {bookingStatus}
               </div>
             )}
-            {/* Botón de videollamada */}
+            {/* Botón de videollamada dinámico */}
             <button
               onClick={handleVideoCall}
-              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+              disabled={videoCallLoading}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                hasActiveCall 
+                  ? 'bg-green-600 hover:bg-green-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              } ${videoCallLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <Video className="w-5 h-5" />
-              <span>Videollamada</span>
+              <span>
+                {videoCallLoading ? (
+                  '🔄 Verificando...'
+                ) : hasActiveCall ? (
+                  '🔗 Unirse a videollamada'
+                ) : (
+                  '🎥 Iniciar videollamada'
+                )}
+              </span>
             </button>
           </div>
         </div>
@@ -236,9 +255,10 @@ const ClassroomDetails: React.FC = () => {
           <ChatTab classroomId={String(tutoringId)} />
         )}
         {activeTab === 'materials' && (
-          <MaterialsTab 
-            materials={materials} 
-            viewMode={viewMode} 
+          <MaterialsTab
+            tutoringId={tutoringId!}
+            materials={materials}
+            viewMode={viewMode}
             setViewMode={(mode: 'list' | 'grid') => setViewMode(mode)}
           />
         )}
@@ -252,15 +272,16 @@ const ClassroomDetails: React.FC = () => {
           />
         )}
       </main>
-      
+
       {/* Modal de videollamada */}
       <VideoCallModal
         isOpen={isVideoCallModalOpen}
         onClose={() => setIsVideoCallModalOpen(false)}
-        roomId={tutoringId}
+        roomId={tutoring?.id}
         tutoringSessionId={tutoringId}
+        callId={hasActiveCall ? activeCall?.id : undefined}
       />
-      
+
       <div className="flex-shrink-0">
         <ClassroomFooter />
       </div>

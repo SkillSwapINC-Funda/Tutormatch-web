@@ -45,6 +45,12 @@ export interface VideoCallParticipant {
 class VideoCallService {
   private getAuthHeaders() {
     const token = localStorage.getItem('auth_token');
+    console.log('🔑 Token para videollamadas:', token ? 'Presente' : 'Ausente');
+    
+    if (!token) {
+      console.error('❌ No hay token de autenticación disponible');
+    }
+    
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -68,13 +74,36 @@ class VideoCallService {
     };
   }
 
+  // Remover estos métodos ya que los endpoints no existen:
+  // async getActiveVideoCallByRoom(roomId: string): Promise<VideoCall | null>
+  // async getActiveVideoCallByTutoringSession(tutoringSessionId: string): Promise<VideoCall | null>
+
   async createVideoCall(data: CreateVideoCallDto): Promise<VideoCall> {
-    const response = await axios.post(
-      `${API_BASE_URL}/api/classroom/video-calls`,
-      data,
-      { headers: this.getAuthHeaders() }
-    );
-    return this.mapVideoCallResponse(response.data);
+    try {
+      // Validar datos antes de enviar - solo jitsiRoomName como en el HTML de prueba
+      const cleanData: any = {
+        jitsiRoomName: data.jitsiRoomName
+        // NO incluir roomId ni tutoringSessionId para evitar errores de clave foránea
+      };
+      
+      console.log('🔄 Enviando datos limpios:', cleanData);
+      console.log('🔑 Headers:', this.getAuthHeaders());
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/api/classroom/video-calls`,
+        cleanData,
+        { headers: this.getAuthHeaders() }
+      );
+      return this.mapVideoCallResponse(response.data);
+    } catch (error: any) {
+      console.error('❌ Error detallado:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      throw error;
+    }
   }
 
   async joinVideoCall(data: JoinVideoCallDto): Promise<VideoCall> {

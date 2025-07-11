@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import VideoCallService, { VideoCall } from '../services/VideoCallService';
 import { toast } from 'react-toastify';
-import { X, Mic, MicOff, Video, VideoOff, Phone, Copy } from 'lucide-react';
+import { X, Copy } from 'lucide-react';
 import { AuthService } from '../../../../../public/services/authService'; 
 
 declare global {
@@ -22,19 +22,13 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
   isOpen, 
   onClose, 
   roomId, 
-  callId: propCallId, 
-  tutoringSessionId 
+  callId: propCallId,
+  tutoringSessionId
 }) => {
   const [videoCall, setVideoCall] = useState<VideoCall | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isInCall, setIsInCall] = useState(false);
-  const [hasJoinedSuccessfully, setHasJoinedSuccessfully] = useState(false);
-  const [audioMuted, setAudioMuted] = useState(true);
-  const [videoMuted, setVideoMuted] = useState(true);
   const [isJitsiLoaded, setIsJitsiLoaded] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
   const [jitsiApi, setJitsiApi] = useState<any>(null);
+  const [hasJoinedSuccessfully, setHasJoinedSuccessfully] = useState(false);
   
   const shouldCreateCall = !propCallId || propCallId === 'solo' || propCallId === 'undefined';
 
@@ -46,7 +40,7 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       script.onload = () => setIsJitsiLoaded(true);
       script.onerror = () => {
         console.error('Error cargando Jitsi Meet API');
-        setError('Error cargando la API de videollamadas');
+        toast.error('Error cargando la API de videollamadas');
       };
       document.head.appendChild(script);
     } else {
@@ -56,7 +50,8 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
 
   useEffect(() => {
     if (isOpen && isJitsiLoaded) {
-      if (shouldCreateCall || roomId) {
+      if (shouldCreateCall || roomId || tutoringSessionId) {
+        // Directamente crear videollamada sin buscar existentes
         createVideoCall();
       } else if (propCallId) {
         loadAndJoinVideoCall();
@@ -69,37 +64,119 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       }
       disposeJitsi();
     };
-  }, [isOpen, isJitsiLoaded, propCallId, roomId, shouldCreateCall]);
+  }, [isOpen, isJitsiLoaded, propCallId, roomId, shouldCreateCall, tutoringSessionId]);
+
+  // Remover checkExistingVideoCallOrCreate() ya que los endpoints no existen
 
   const createVideoCall = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      // Verificar autenticación
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        toast.error('No hay token de autenticación. Por favor, inicia sesión nuevamente.');
+        return;
+      }
       
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substr(2, 9);
-      const jitsiRoomName = roomId 
-        ? `tutormatch-room-${roomId}-${timestamp}`
-        : `tutormatch-solo-${timestamp}-${randomId}`;
+      // Usar patrón predecible basado en tutoringSessionId
+      let jitsiRoomName: string;
+      if (tutoringSessionId && tutoringSessionId !== 'undefined') {
+        jitsiRoomName = `tutoring-session-${tutoringSessionId}`;
+        console.log('🎥 Usando sala predecible para sesión:', jitsiRoomName);
+      } else {
+        // Fallback para casos sin tutoringSessionId
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 9);
+        jitsiRoomName = `tutoring-${timestamp}-${randomId}`;
+        console.log('🎥 Creando sala única:', jitsiRoomName);
+      }
       
-      console.log('🎥 Creando nueva videollamada:', jitsiRoomName);
+      // ✅ NUEVA LÓGICA: Primero buscar videollamadas existentes
+      try {
+        console.log('🔍 Buscando videollamadas existentes...');
+        const activeCalls = await VideoCallService.getActiveVideoCalls();
+        
+        // Buscar por patrón de nombre de sala
+        const existingCall = activeCalls.find(call => 
+          call.jitsiRoomName === jitsiRoomName && 
+          (call.status === 'active' || call.status === 'scheduled')
+        );
+        
+        if (existingCall) {
+          console.log('✅ Videollamada existente encontrada:', existingCall);
+          setVideoCall(existingCall);
+          
+          // Intentar unirse al backend
+          try {
+            await VideoCallService.joinVideoCall({ callId: existingCall.id });
+            console.log('✅ Unido al backend exitosamente');
+          } catch (joinError: any) {
+            if (joinError.response?.status === 400 && 
+                joinError.response?.data?.message?.includes('participante')) {
+              console.log('⚠️ Ya eres participante, continuando con Jitsi...');
+            } else {
+              throw joinError;
+            }
+          }
+          
+          // Inicializar Jitsi con la videollamada existente
+          await initializeJitsi(existingCall);
+          return;
+        }
+      } catch (searchError: any) {
+        console.log('⚠️ Error buscando videollamadas existentes, creando nueva:', searchError.message);
+        // Continuar con la creación si falla la búsqueda
+      }
       
-      const newCall = await VideoCallService.createVideoCall({
-        jitsiRoomName,
-        roomId: roomId || undefined,
-        tutoringSessionId: tutoringSessionId || undefined
-      });
+      // Si no existe, crear nueva videollamada
+      const callData = {
+        jitsiRoomName
+      };
       
+      console.log('🆕 Creando nueva videollamada...');
+      const newCall = await VideoCallService.createVideoCall(callData);
       setVideoCall(newCall);
       console.log('✅ Videollamada creada:', newCall);
       
-      // Directamente inicializar Jitsi
-      await initializeJitsiDirectly(newCall);
+      // Inicializar Jitsi directamente
+      await initializeJitsi(newCall);
     } catch (error: any) {
       console.error('❌ Error creando videollamada:', error);
-      setError(error.response?.data?.message || error.message || 'Error creando la videollamada');
-    } finally {
-      setLoading(false);
+      
+      if (error.response?.status === 401) {
+        toast.error('Error de autenticación. Por favor, inicia sesión nuevamente.');
+      } else if (error.response?.status === 400) {
+        const errorMessage = error.response?.data?.message || 'Datos inválidos para crear la videollamada';
+        
+        // Si el error es por videollamada existente, intentar buscar y unirse
+        if (errorMessage.includes('Ya existe una videollamada activa')) {
+          console.log('🔄 Videollamada ya existe, intentando buscar y unirse...');
+          try {
+            const activeCalls = await VideoCallService.getActiveVideoCalls();
+            const jitsiRoomName = tutoringSessionId ? `tutoring-session-${tutoringSessionId}` : null;
+            
+            if (jitsiRoomName) {
+              const existingCall = activeCalls.find(call => 
+                call.jitsiRoomName === jitsiRoomName && 
+                (call.status === 'active' || call.status === 'scheduled')
+              );
+              
+              if (existingCall) {
+                setVideoCall(existingCall);
+                await VideoCallService.joinVideoCall({ callId: existingCall.id });
+                await initializeJitsi(existingCall);
+                return;
+              }
+            }
+          } catch (fallbackError) {
+            console.error('❌ Error en fallback:', fallbackError);
+          }
+        }
+        
+        toast.error(`Error 400: ${errorMessage}`);
+        console.error('Detalles del error 400:', error.response?.data);
+      } else {
+        toast.error(error.response?.data?.message || error.message || 'Error creando la videollamada');
+      }
     }
   };
 
@@ -107,15 +184,12 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
     if (!propCallId) return;
     
     try {
-      setLoading(true);
-      setError(null);
-      
       console.log('🔄 Cargando videollamada:', propCallId);
       const call = await VideoCallService.getVideoCallDetails(propCallId);
       setVideoCall(call);
       
       if (call.status === 'active' || call.status === 'scheduled') {
-        // Intentar unirse al backend, pero si falla por "ya participante", continuar
+        // Intentar unirse al backend
         try {
           await VideoCallService.joinVideoCall({ callId: call.id });
           console.log('✅ Unido al backend exitosamente');
@@ -128,31 +202,29 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
           }
         }
         
-        await initializeJitsiDirectly(call);
+        await initializeJitsi(call);
       } else {
-        setError('La videollamada ha finalizado');
+        toast.error('La videollamada ha finalizado');
       }
     } catch (error: any) {
       console.error('❌ Error cargando videollamada:', error);
-      setError(error.response?.data?.message || error.message || 'Error cargando la videollamada');
-    } finally {
-      setLoading(false);
+      toast.error(error.response?.data?.message || error.message || 'Error cargando la videollamada');
     }
   };
 
-  const initializeJitsiDirectly = async (call: VideoCall) => {
+  const initializeJitsi = async (call: VideoCall) => {
     if (!window.JitsiMeetExternalAPI) {
-      setError('Jitsi Meet API no está disponible');
+      toast.error('Jitsi Meet API no está disponible');
       return;
     }
 
     try {
-      setIsConnecting(true);
       console.log('🔄 Inicializando Jitsi:', call.jitsiRoomName);
       
-      const container = document.getElementById('jitsi-modal-container');
+      const container = document.getElementById('jitsi-container');
       if (!container) {
-        throw new Error('Contenedor de Jitsi no encontrado');
+        console.error('Contenedor de Jitsi no encontrado');
+        return;
       }
 
       // Limpiar contenedor
@@ -161,82 +233,31 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       // Obtener información del usuario
       const userProfile = await AuthService.getCurrentUserProfile();
       
-      // Configuración mejorada basada en el HTML de prueba
+      // Configuración simplificada - dejar que Jitsi maneje su UI
       const jitsiOptions = {
         roomName: call.jitsiRoomName,
         width: '100%',
         height: '100%',
         parentNode: container,
         configOverwrite: {
-          // Configuraciones clave para auto-join directo
-          prejoinPageEnabled: false,        // No mostrar página de pre-unión
-          enableWelcomePage: false,         // No mostrar página de bienvenida
-          enableClosePage: false,           // No mostrar página de cierre
-          disableInitialGUM: false,         // Permitir acceso a cámara/micrófono
-          autoJoinDisabled: false,          // Habilitar auto-join
-          
-          // Configuración de medios - Empezar silenciado para evitar problemas
-          startWithAudioMuted: true,        // Audio silenciado inicialmente
-          startWithVideoMuted: true,        // Video desactivado inicialmente
-          disableModeratorIndicator: false,
-          startScreenSharing: false,
-          enableEmailInStats: false,
-          startAudioOnly: false,
-          
-          // Configuración de calidad
+          prejoinPageEnabled: false,
+          enableWelcomePage: false,
+          enableClosePage: false,
+          startWithAudioMuted: true,
+          startWithVideoMuted: true,
           resolution: 720,
-          constraints: {
-            video: {
-              aspectRatio: 16 / 9,
-              height: {
-                ideal: 720,
-                max: 1080,
-                min: 240
-              }
-            }
-          },
-          
-          // Configuración de red
           p2p: {
             enabled: true,
             preferH264: true
-          },
-          
-          // Configuración adicional para mejor UX
-          disableThirdPartyRequests: false,
-          enableNoAudioDetection: true,
-          enableNoisyMicDetection: true,
-          enableLipSync: true
+          }
         },
         interfaceConfigOverwrite: {
-          TOOLBAR_BUTTONS: [
-            'microphone', 'camera', 'closedcaptions', 'desktop',
-            'chat', 'raisehand', 'videoquality', 'filmstrip',
-            'feedback', 'stats', 'shortcuts', 'tileview',
-            'videobackgroundblur', 'help'
-          ],
-          SETTINGS_SECTIONS: ['devices', 'language', 'profile'],
-          
-          // Branding
           SHOW_JITSI_WATERMARK: false,
           SHOW_WATERMARK_FOR_GUESTS: false,
           SHOW_BRAND_WATERMARK: false,
           SHOW_POWERED_BY: false,
-          SHOW_PROMOTIONAL_CLOSE_PAGE: false,
-          
-          // UX mejorado
-          LANG_DETECTION: true,
-          CONNECTION_INDICATOR_DISABLED: false,
-          VIDEO_QUALITY_LABEL_DISABLED: false,
-          RECENT_LIST_ENABLED: false,
-          DISABLE_JOIN_LEAVE_NOTIFICATIONS: false,
-          MOBILE_APP_PROMO: false,
-          ENFORCE_NOTIFICATION_AUTO_DISMISS_TIMEOUT: 5000,
-          
-          // Configuración adicional
           APP_NAME: 'TutorMatch',
-          NATIVE_APP_NAME: 'TutorMatch',
-          DEFAULT_BACKGROUND: '#007bff'
+          NATIVE_APP_NAME: 'TutorMatch'
         },
         userInfo: {
           displayName: `${userProfile?.firstName} ${userProfile?.lastName}` || 'Usuario TutorMatch',
@@ -247,33 +268,18 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       const api = new window.JitsiMeetExternalAPI('meet.jit.si', jitsiOptions);
       setJitsiApi(api);
 
-      // Event listeners mejorados basados en el HTML de prueba
+      // Event listeners básicos
       api.addEventListener('videoConferenceJoined', (event: any) => {
         console.log('✅ Te uniste exitosamente a la videollamada:', event);
         setHasJoinedSuccessfully(true);
-        setIsInCall(true);
-        setIsConnecting(false);
         toast.success('🎥 ¡Estás en la videollamada!');
       });
 
       api.addEventListener('videoConferenceLeft', (event: any) => {
-        console.log('👋 Evento: Saliste de la videollamada', event);
-        // Solo salir si fue por acción del usuario (no por permisos de cámara/mic)
+        console.log('👋 Saliste de la videollamada', event);
         if (hasJoinedSuccessfully) {
           handleLeaveCall(true);
-        } else {
-          console.log('🔄 Ignorando salida automática - el usuario no se había unido completamente');
         }
-      });
-
-      api.addEventListener('participantJoined', (event: any) => {
-        console.log('👥 Nuevo participante se unió:', event);
-        toast.info(`👥 ${event.displayName || 'Alguien'} se unió`);
-      });
-
-      api.addEventListener('participantLeft', (event: any) => {
-        console.log('👋 Participante salió:', event);
-        toast.info(`👋 ${event.displayName || 'Alguien'} salió`);
       });
 
       api.addEventListener('readyToClose', () => {
@@ -283,44 +289,9 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
         }
       });
 
-      // Event listeners adicionales para mejor debugging
-      api.addEventListener('cameraError', (error: any) => {
-        console.error('❌ Error de cámara:', error);
-        toast.error('⚠️ Error de cámara. Revisa permisos.');
-      });
-
-      api.addEventListener('micError', (error: any) => {
-        console.error('❌ Error de micrófono:', error);
-        toast.error('⚠️ Error de micrófono. Revisa permisos.');
-      });
-
-      api.addEventListener('audioMuteStatusChanged', (event: any) => {
-        console.log('🎤 Estado audio:', event.muted ? 'Silenciado' : 'Activado');
-        setAudioMuted(event.muted);
-      });
-
-      api.addEventListener('videoMuteStatusChanged', (event: any) => {
-        console.log('📹 Estado video:', event.muted ? 'Desactivado' : 'Activado');
-        setVideoMuted(event.muted);
-      });
-
-      // Eventos adicionales para debugging de permisos
-      api.addEventListener('deviceListChanged', (event: any) => {
-        console.log('📱 Lista de dispositivos cambió:', event);
-      });
-
-      api.addEventListener('cameraReady', () => {
-        console.log('📹 Cámara lista');
-      });
-
-      api.addEventListener('micReady', () => {
-        console.log('🎤 Micrófono listo');
-      });
-
     } catch (error: any) {
       console.error('❌ Error inicializando Jitsi:', error);
-      setError('Error inicializando la videollamada');
-      setIsConnecting(false);
+      toast.error('Error inicializando la videollamada');
     }
   };
 
@@ -332,16 +303,14 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
         console.log('🔄 Saliendo de videollamada...');
       }
       
-      // Solo llamar al backend si realmente se había unido
       if (hasJoinedSuccessfully) {
         try {
           await VideoCallService.leaveVideoCall(videoCall.id);
         } catch (error) {
-          console.warn('Error saliendo del backend, pero continuando:', error);
+          console.warn('Error saliendo del backend:', error);
         }
       }
       
-      setIsInCall(false);
       setHasJoinedSuccessfully(false);
       disposeJitsi();
       
@@ -357,27 +326,6 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
     }
   };
 
-  const handleEndCall = async () => {
-    if (!videoCall) return;
-    
-    try {
-      console.log('🔄 Finalizando videollamada...');
-      
-      await VideoCallService.endVideoCall({
-        callId: videoCall.id
-      });
-      
-      setIsInCall(false);
-      setHasJoinedSuccessfully(false);
-      disposeJitsi();
-      toast.success('📞 Videollamada finalizada');
-      onClose();
-    } catch (error: any) {
-      console.error('❌ Error finalizando videollamada:', error);
-      toast.error('Error finalizando la videollamada');
-    }
-  };
-
   const copyCallId = async () => {
     if (!videoCall?.id) return;
     
@@ -386,18 +334,6 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       toast.success(`📋 ID copiado: ${videoCall.id}`);
     } catch (error) {
       toast.error('No se pudo copiar al portapapeles');
-    }
-  };
-
-  const handleToggleAudio = () => {
-    if (jitsiApi) {
-      jitsiApi.executeCommand('toggleAudio');
-    }
-  };
-
-  const handleToggleVideo = () => {
-    if (jitsiApi) {
-      jitsiApi.executeCommand('toggleVideo');
     }
   };
 
@@ -410,8 +346,6 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
       }
       setJitsiApi(null);
     }
-    setIsConnecting(false);
-    setIsInCall(false);
   };
 
   if (!isOpen) return null;
@@ -419,7 +353,7 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-5/6 flex flex-col">
-        {/* Header */}
+        {/* Header minimalista */}
         <div className="bg-gray-800 text-white p-4 rounded-t-lg flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold">Videollamada - TutorMatch</h2>
@@ -455,98 +389,14 @@ const VideoCallModal: React.FC<VideoCallModalProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 bg-gray-900 relative">
-          {loading && (
-            <div className="flex items-center justify-center h-full text-white">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p>Cargando videollamada...</p>
-              </div>
-            </div>
-          )}
-          
-          {error && (
-            <div className="flex items-center justify-center h-full text-white">
-              <div className="text-center">
-                <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                <h3 className="text-xl font-semibold mb-2">Error</h3>
-                <p className="text-gray-300 mb-4">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                  Reintentar
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {!loading && !error && (
-            <div 
-              id="jitsi-modal-container" 
-              className="w-full h-full"
-              style={{ minHeight: '400px' }}
-            >
-              {!isInCall && !isConnecting && (
-                <div className="flex items-center justify-center h-full text-white text-lg">
-                  {videoCall ? 
-                    'Conectando a la videollamada...' : 
-                    'Preparando videollamada...'
-                  }
-                </div>
-              )}
-              {isConnecting && (
-                <div className="flex items-center justify-center h-full text-white">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-                    <p>Conectando a la videollamada...</p>
-                    <p className="text-sm text-gray-300 mt-2">
-                      Permite el acceso a cámara y micrófono
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+        {/* Contenedor de Jitsi - UI nativa */}
+        <div className="flex-1 bg-gray-900">
+          <div 
+            id="jitsi-container" 
+            className="w-full h-full"
+            style={{ minHeight: '400px' }}
+          />
         </div>
-
-        {/* Controls */}
-        {isInCall && (
-          <div className="bg-gray-800 p-4 rounded-b-lg flex justify-center space-x-4">
-            <button
-              onClick={handleToggleAudio}
-              className={`p-3 rounded-full ${
-                audioMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-            >
-              {audioMuted ? <MicOff size={20} /> : <Mic size={20} />}
-            </button>
-            
-            <button
-              onClick={handleToggleVideo}
-              className={`p-3 rounded-full ${
-                videoMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              } text-white`}
-            >
-              {videoMuted ? <VideoOff size={20} /> : <Video size={20} />}
-            </button>
-            
-            <button
-              onClick={() => handleLeaveCall(false)}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
-            >
-              Salir
-            </button>
-            
-            <button
-              onClick={handleEndCall}
-              className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-full"
-            >
-              <Phone size={20} />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

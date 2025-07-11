@@ -15,9 +15,9 @@ import { User as UserType } from '../../user/types/User';
 import { Course } from '../../course/types/Course';
 import { ClassroomBookingService, ClassroomBooking } from '../components/service/BookingService';
 import axios from 'axios';
+import { useVideoCallStatus } from '../hooks/useVideoCallStatus';
 
 const API_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
-const API_VIDEO_URL = import.meta.env.VITE_TUTORMATCH_MICROSERVICES;
 
 const TutorClassroomView: React.FC = () => {
   const { tutoringId, studentId } = useParams<{ tutoringId: string; studentId: string }>();
@@ -88,6 +88,8 @@ const TutorClassroomView: React.FC = () => {
   }, [tutoringId, studentId]);
 
   // Función para manejar la videollamada - ACTUALIZADA
+  const { hasActiveCall, activeCall, loading: videoCallLoading } = useVideoCallStatus(tutoringId);
+  
   const handleVideoCall = () => {
     setIsVideoCallModalOpen(true);
   };
@@ -267,12 +269,32 @@ const TutorClassroomView: React.FC = () => {
         </div>
       </main>
       
+      {/* Botón de videollamada dinámico */}
+      <button
+        onClick={handleVideoCall}
+        disabled={videoCallLoading}
+        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          hasActiveCall 
+            ? 'bg-green-600 hover:bg-green-700 text-white' 
+            : 'bg-blue-600 hover:bg-blue-700 text-white'
+        } ${videoCallLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        {videoCallLoading ? (
+          '🔄 Verificando...'
+        ) : hasActiveCall ? (
+          '🔗 Unirse a videollamada'
+        ) : (
+          '🎥 Iniciar videollamada'
+        )}
+      </button>
+
       {/* Modal de videollamada */}
       <VideoCallModal
         isOpen={isVideoCallModalOpen}
         onClose={() => setIsVideoCallModalOpen(false)}
-        roomId={tutoringId}
+        roomId={tutoring?.id}
         tutoringSessionId={tutoringId}
+        callId={hasActiveCall ? activeCall?.id : undefined}
       />
       
       <ClassroomFooter />
