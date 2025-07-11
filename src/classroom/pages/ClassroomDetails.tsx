@@ -12,6 +12,7 @@ import { AuthService } from '../../public/services/authService';
 import { TutoringSession } from '../../tutoring/types/Tutoring';
 import { User } from '../../user/types/User';
 import { Course } from '../../course/types/Course';
+import { ClassroomBookingService } from '../components/service/BookingService';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_TUTORMATCH_BACKEND_URL;
@@ -25,9 +26,10 @@ const ClassroomDetails: React.FC = () => {
   const [tutoring, setTutoring] = useState<TutoringSession | null>(null);
   const [tutor, setTutor] = useState<User | null>(null);
   const [student, setStudent] = useState<User | null>(null);
-  const [course, setCourse] = useState<Course | null>(null); // Agregar course al estado
+  const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<string>('');
 
   // Función para obtener datos reales
   useEffect(() => {
@@ -68,6 +70,9 @@ const ClassroomDetails: React.FC = () => {
           try {
             const studentData = await UserService.getUserById(currentUserId);
             setStudent(studentData);
+            
+            // 5. NUEVA LÓGICA: Crear reserva automática para el estudiante
+            await handleStudentBooking(tutoringId, currentUserId, tutoringData.tutorId);
           } catch (studentError) {
             console.warn('Error al obtener información del estudiante:', studentError);
           }
@@ -84,6 +89,26 @@ const ClassroomDetails: React.FC = () => {
     fetchData();
   }, [tutoringId]);
 
+  // NUEVA FUNCIÓN: Manejar reserva automática del estudiante
+  const handleStudentBooking = async (tutoringSessionId: string, studentId: string, tutorId: string) => {
+    try {
+      setBookingStatus('Conectando...');
+      
+      // Crear o obtener reserva existente
+      const booking = await ClassroomBookingService.joinTutoringSession(
+        tutoringSessionId, 
+        studentId, 
+        tutorId
+      );
+      
+      setBookingStatus(`Sesión activa desde ${new Date(booking.joined_at || '').toLocaleString()}`);
+      console.log('Reserva procesada:', booking);
+      
+    } catch (error) {
+      console.error('Error en reserva:', error);
+      setBookingStatus('Error al conectar a la sesión');
+    }
+  };
 
   // Función para obtener el nombre completo del tutor
   const getTutorName = () => {
@@ -173,14 +198,22 @@ const ClassroomDetails: React.FC = () => {
           <div className="text-lg font-bold">
             <b>{tutoring?.title || tutoringId}</b> • <span>{getTutorName()}</span>
           </div>
-          {/* Botón de videollamada */}
-          <button
-            onClick={handleVideoCall}
-            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <Video className="w-5 h-5" />
-            <span>Videollamada</span>
-          </button>
+          <div className="flex items-center space-x-4">
+            {/* Mostrar estado de la reserva */}
+            {bookingStatus && (
+              <div className="text-sm text-green-400 bg-green-900/20 px-3 py-1 rounded-lg">
+                {bookingStatus}
+              </div>
+            )}
+            {/* Botón de videollamada */}
+            <button
+              onClick={handleVideoCall}
+              className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <Video className="w-5 h-5" />
+              <span>Videollamada</span>
+            </button>
+          </div>
         </div>
       </div>
       {/* Navigation Tabs */}

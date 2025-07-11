@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { TutoringService } from '../../tutoring/services/TutoringService';
 import { UserService } from '../../user/services/UserService';
+import { ClassroomBookingService, ClassroomBookingWithProfiles } from '../components/service/BookingService';
 import { TutoringSession } from '../../tutoring/types/Tutoring';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Users, Clock } from 'lucide-react';
 import ClassroomCourseCard from '../components/classroom-dashboard/ClassroomCourseCard';
 import ClassroomNavbar from '../components/ClassroomNavbar';
 import ClassroomFooter from '../components/ClassroomFooter';
@@ -22,15 +23,57 @@ const ClassroomPage = () => {
     materialsNotifications: number;
   }>>({});
 
+  // Estados para las reservas
+  const [userId, setUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [tutorBookings, setTutorBookings] = useState<ClassroomBookingWithProfiles[]>([]);
+  const [studentInfoMap, setStudentInfoMap] = useState<Record<string, {
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>>({});
+
+  // Nuevo estado para reservas del tutor
+  const [, setActiveBookings] = useState<ClassroomBookingWithProfiles[]>([]);
+  const [, setLoadingBookings] = useState(false);
+
   useEffect(() => {
+    // Obtener información del usuario actual
+    const currentUserId = localStorage.getItem("currentUserId");
+    const userRole = localStorage.getItem("currentUserRole");
+    
+    console.log('🔍 DEBUG ClassroomPage:');
+    console.log('userId:', currentUserId);
+    console.log('userRole:', userRole);
+    
+    setUserId(currentUserId);
+    setCurrentUserRole(userRole);
+
     const fetchCourses = async () => {
       setLoading(true);
       setError(null);
       try {
         const data = await TutoringService.getAllTutoringSessions();
         setCourses(data);
+        
+        // Si es tutor, obtener sus reservas
+        if (userRole === 'tutor' && currentUserId) {
+          console.log('👨‍🏫 Es tutor, obteniendo reservas para userId:', currentUserId);
+          const allBookings = await ClassroomBookingService.getTutorSessions(currentUserId);
+          console.log('📚 Todas las reservas del tutor:', allBookings);
+          
+          const activeBookings = allBookings.filter(b => b.status === 'active');
+          console.log('✅ Reservas activas:', activeBookings);
+          
+          setTutorBookings(activeBookings);
+        } else {
+          console.log('❌ No es tutor o no hay userId');
+          console.log('Condición: userRole === "tutor":', userRole === 'tutor');
+          console.log('Condición: userId existe:', !!currentUserId);
+        }
       } catch (err: any) {
         setError('Error al cargar las tutorías.');
+        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
@@ -38,6 +81,38 @@ const ClassroomPage = () => {
     fetchCourses();
   }, []);
 
+  // Cargar información de estudiantes para las reservas
+  useEffect(() => {
+    const loadStudentInfo = async () => {
+      const studentIds = [...new Set(tutorBookings.map(b => b.student_id))];
+      const infoMap: Record<string, any> = {};
+      
+      await Promise.all(
+        studentIds.map(async (studentId) => {
+          try {
+            const student = await UserService.getUserById(studentId);
+            infoMap[studentId] = {
+              firstName: student.firstName || 'Estudiante',
+              lastName: student.lastName || '',
+              email: student.email || ''
+            };
+          } catch {
+            infoMap[studentId] = {
+              firstName: 'Estudiante',
+              lastName: 'Desconocido',
+              email: ''
+            };
+          }
+        })
+      );
+      
+      setStudentInfoMap(infoMap);
+    };
+
+    if (tutorBookings.length > 0) {
+      loadStudentInfo();
+    }
+  }, [tutorBookings]);
 
   async function calcularInfoCurso(course: TutoringSession): Promise<{
     tutorName: string;
@@ -100,6 +175,27 @@ const ClassroomPage = () => {
     return () => { isMounted = false; };
   }, [courses]);
 
+  // Función para obtener reservas activas del tutor
+  const fetchTutorActiveBookings = async () => {
+    if (currentUserRole !== 'tutor' || !userId) return;
+    
+    setLoadingBookings(true);
+    try {
+      const bookings = await ClassroomBookingService.getTutorActiveBookings(userId);
+      setActiveBookings(bookings);
+      console.log('Reservas activas del tutor:', bookings);
+    } catch (error) {
+      console.error('Error obteniendo reservas del tutor:', error);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTutorActiveBookings();
+  }, [userId, currentUserRole]);
+
+
   return (
     <div className="min-h-screen bg-dark text-light flex flex-col">
       {/* Header */}
@@ -108,6 +204,78 @@ const ClassroomPage = () => {
       {/* Main Content */}
       <main className="flex-1 px-6 py-8">
         <h2 className="text-2xl font-bold mb-8">Tutorías disponibles en Classroom</h2>
+
+        {/* DEBUGGING: Mostrar información de debug */}
+        <div className="mb-4 p-4 bg-yellow-900 border border-yellow-600 rounded-lg text-yellow-100">
+          <h3 className="font-bold mb-2">🔍 DEBUG INFO:</h3>
+          <p>Rol actual: <strong>{currentUserRole || 'null'}</strong></p>
+          <p>Es tutor: <strong>{currentUserRole === 'tutor' ? 'SÍ' : 'NO'}</strong></p>
+          <p>Reservas encontradas: <strong>{tutorBookings.length}</strong></p>
+          <p>Condición para mostrar sección: <strong>{currentUserRole === 'tutor' && tutorBookings.length > 0 ? 'SÍ' : 'NO'}</strong></p>
+        </div>
+
+        {/* Mostrar reservas activas si es tutor */}
+        {currentUserRole === 'tutor' && tutorBookings.length > 0 && (
+          <div className="mb-8 p-6 bg-dark-card border border-dark-border rounded-lg">
+            <div className="flex items-center space-x-2 mb-4">
+              <Users className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Estudiantes Conectados</h3>
+              <span className="bg-primary text-dark px-2 py-1 rounded-full text-sm font-medium">
+                {tutorBookings.length}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tutorBookings.map((booking) => {
+                const studentInfo = studentInfoMap[booking.student_id] || {
+                  firstName: 'Estudiante',
+                  lastName: 'Desconocido',
+                  email: ''
+                };
+                const course = courses.find(c => c.id === booking.tutoring_session_id);
+                const joinedTime = new Date(booking.joined_at || '').toLocaleString('es-ES', {
+                  dateStyle: 'short',
+                  timeStyle: 'short'
+                });
+                
+                return (
+                  <div key={booking.id} className="p-4 bg-dark-light border border-dark-border rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h4 className="font-medium text-light">
+                          {studentInfo.firstName} {studentInfo.lastName}
+                        </h4>
+                        <p className="text-sm text-light-gray">{studentInfo.email}</p>
+                      </div>
+                      <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+                        Activo
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1 text-sm text-light-gray">
+                      <div className="flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Conectado: {joinedTime}</span>
+                      </div>
+                      {course && (
+                        <div className="font-medium text-light">
+                          Curso: {course.title}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button 
+                      onClick={() => window.open(`/classroom/tutor/${booking.tutoring_session_id}/student/${booking.student_id}`, '_blank')}
+                      className="mt-3 w-full px-3 py-2 bg-primary text-dark rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+                    >
+                      Ir al Classroom
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Search and Filter */}
         <div className="flex items-center space-x-4 mb-8">

@@ -50,7 +50,7 @@ export interface ChatParticipant {
   };
 }
 
-class ChatService {
+export class ChatService {
   private currentSubscription: any = null;
   private messageCallbacks: ((message: ChatMessage) => void)[] = [];
   private participantCallbacks: ((participants: ChatParticipant[]) => void)[] = [];

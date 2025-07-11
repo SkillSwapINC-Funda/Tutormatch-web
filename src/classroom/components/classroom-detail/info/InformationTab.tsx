@@ -31,6 +31,8 @@ interface InformationTabProps {
     name?: string;
     semesterNumber?: number;
   } | null;
+  // Agregar prop opcional para identificar si es vista de tutor
+  tutorView?: boolean;
 }
 
 const InformationTab: React.FC<InformationTabProps> = ({ 
@@ -38,15 +40,22 @@ const InformationTab: React.FC<InformationTabProps> = ({
   tutor, 
   student, 
   reviews = [],
-  course 
+  course,
+  tutorView = false
 }) => {
 
-   if (!tutoring) {
+  if (!tutoring) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-light-gray text-xl mb-4">⚠️</div>
           <p className="text-light-gray">No se pudo cargar la información de la tutoría</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-primary text-light rounded hover:bg-primary-dark transition-colors"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
@@ -99,6 +108,11 @@ const InformationTab: React.FC<InformationTabProps> = ({
                   </span>
                 </>
               )}
+              {tutorView && (
+                <span className="px-2 py-1 bg-blue-600/20 text-blue-500 rounded-full text-xs font-medium">
+                  Vista de Tutor
+                </span>
+              )}
             </div>
             
             <h1 className="text-2xl font-bold mb-4 text-light">{tutoring.title}</h1>
@@ -143,7 +157,9 @@ const InformationTab: React.FC<InformationTabProps> = ({
 
           {/* Lo que aprenderás */}
           <div className="bg-dark-card rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-6 text-light">Lo que aprenderás</h2>
+            <h2 className="text-xl font-semibold mb-6 text-light">
+              {tutorView ? 'Contenido de la tutoría' : 'Lo que aprenderás'}
+            </h2>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {learningPoints.map((item: any, index: number) => (
                 <li key={index} className="flex items-start gap-2">
@@ -161,7 +177,9 @@ const InformationTab: React.FC<InformationTabProps> = ({
           {/* Información del tutor */}
           {tutor && (
             <div className="bg-dark-card rounded-lg p-6">
-              <h3 className="text-light text-lg font-semibold mb-4">Sobre el tutor</h3>
+              <h3 className="text-light text-lg font-semibold mb-4">
+                {tutorView ? 'Tu perfil como tutor' : 'Sobre el tutor'}
+              </h3>
               <div className="flex items-start space-x-4">
                 <div className="w-16 h-16 bg-light rounded-full flex items-center justify-center text-dark text-xl font-bold overflow-hidden">
                   {tutor.avatar ? (
@@ -189,10 +207,12 @@ const InformationTab: React.FC<InformationTabProps> = ({
             </div>
           )}
 
-          {/* Información del estudiante - Solo mostrar si existe */}
+          {/* Información del estudiante - Mostrar siempre en vista de tutor */}
           {student && (
             <div className="bg-dark-card rounded-lg p-6">
-              <h3 className="text-light text-lg font-semibold mb-4">Estudiante</h3>
+              <h3 className="text-light text-lg font-semibold mb-4">
+                {tutorView ? 'Tu estudiante' : 'Estudiante'}
+              </h3>
               <div className="flex items-start space-x-4">
                 <div className="w-16 h-16 bg-light rounded-full flex items-center justify-center text-dark text-xl font-bold overflow-hidden">
                   {student.avatar ? (

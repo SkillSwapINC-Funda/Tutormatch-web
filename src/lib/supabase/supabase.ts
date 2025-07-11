@@ -199,6 +199,58 @@ export type Database = {
           },
         ]
       }
+      classroom_bookings: {
+        Row: {
+          created_at: string | null
+          id: string
+          joined_at: string | null
+          status: string | null
+          student_id: string
+          tutor_id: string
+          tutoring_session_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          student_id: string
+          tutor_id: string
+          tutoring_session_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          joined_at?: string | null
+          status?: string | null
+          student_id?: string
+          tutor_id?: string
+          tutoring_session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classroom_bookings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_bookings_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_bookings_tutoring_session_id_fkey"
+            columns: ["tutoring_session_id"]
+            isOneToOne: false
+            referencedRelation: "tutoring_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           created_at: string | null

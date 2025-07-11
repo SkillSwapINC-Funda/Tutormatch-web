@@ -20,6 +20,7 @@ import MembershipWaitingPage from './public/pages/membership/pages/MembershipWai
 import AdminDashboardPage from './admin/pages/AdminDashboardPage';
 import ClassroomPage from './classroom/pages/ClassroomPage';
 import ClassroomDetails from './classroom/pages/ClassroomDetails';
+import TutorClassroomView from './classroom/pages/TutorClassroomView';
 import VideoCallPage from './classroom/components/classroom-detail/videocall/pages/VideoCallPage';
 
 const App = () => {
@@ -45,6 +46,7 @@ const App = () => {
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/classroom" element={<ClassroomPage />} />
           <Route path="/classroom/details/:tutoringId" element={<ClassroomDetails />} />
+          <Route path="/classroom/tutor/:tutoringId/student/:studentId" element={<TutorClassroomView />} />
           <Route path="/classroom/:tutoringId/videocall" element={<VideoCallPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
