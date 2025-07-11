@@ -199,7 +199,6 @@ export class ChatService {
     }
   }
 
-  // Obtener participantes de una sala
   async getRoomParticipants(roomId: string): Promise<ChatParticipant[]> {
     try {
       const token = AuthService.getAuthToken();
@@ -230,7 +229,6 @@ export class ChatService {
     }
   }
 
-  // También actualizar otros métodos que usan el token
   async getMessages(roomId: string, page: number = 1, limit: number = 50): Promise<ChatMessage[]> {
     try {
       const token = localStorage.getItem("auth_token");
@@ -261,7 +259,6 @@ export class ChatService {
     }
   }
 
-  // En el método sendMessage
   async sendMessage(roomId: string, content: string, messageType: string = 'text', replyTo?: string, fileDetails?: any): Promise<any> {
     try {
       const token = AuthService.getAuthToken();
@@ -270,7 +267,6 @@ export class ChatService {
         throw new Error('No hay token de autenticación disponible');
       }
   
-      // Agregar log para debug
       console.log('Enviando mensaje con token:', token ? 'Token presente' : 'Sin token');
       console.log('User ID:', AuthService.getCurrentUserId());
       
